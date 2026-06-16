@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package funky.registry.v1;
+
+import "funky/type/v1/agent.proto";
+import "funky/type/v1/environment.proto";
+
+// ConfigRegistry stores agent and environment configs and hands them back by
+// id. Configs are write-once specs: create stores one and returns its id, get
+// resolves an id back to the stored config.
+service ConfigRegistry {
+  // Store an AgentConfig and return its id.
+  rpc CreateAgent(CreateAgentRequest) returns (CreateAgentResponse);
+
+  // Resolve an AgentConfig by id.
+  rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
+
+  // Store an EnvironmentConfig and return its id.
+  rpc CreateEnvironment(CreateEnvironmentRequest) returns (CreateEnvironmentResponse);
+
+  // Resolve an EnvironmentConfig by id.
+  rpc GetEnvironment(GetEnvironmentRequest) returns (GetEnvironmentResponse);
+}
+
+message CreateAgentRequest {
+  funky.type.v1.AgentConfig config = 1;
+}
+
+message CreateAgentResponse {
+  // Registry-assigned id for the stored config.
+  string id = 1;
+}
+
+message GetAgentRequest {
+  string id = 1;
+}
+
+message GetAgentResponse {
+  funky.type.v1.AgentConfig config = 1;
+}
+
+message CreateEnvironmentRequest {
+  funky.type.v1.EnvironmentConfig config = 1;
+}
+
+message CreateEnvironmentResponse {
+  // Registry-assigned id for the stored config.
+  string id = 1;
+}
+
+message GetEnvironmentRequest {
+  string id = 1;
+}
+
+message GetEnvironmentResponse {
+  funky.type.v1.EnvironmentConfig config = 1;
+}

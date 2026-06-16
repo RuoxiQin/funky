@@ -6,6 +6,11 @@ modules:
 lint:
   use:
     - STANDARD
+  except:
+    # Services are named for the interfaces in the README (ConfigRegistry,
+    # SessionStore, SandboxRuntime, AgentService), not all of which end in
+    # "Service". Drop the suffix requirement to keep the proto names aligned.
+    - SERVICE_SUFFIX
 breaking:
   use:
     - FILE
