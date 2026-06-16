@@ -9,6 +9,7 @@ members = [
   "gen/python",
   "config_registry/local_python_jsonl",
   "session_store/local_python_jsonl",
+  "sandbox_runtime/local_python_docker",
 ]
 
 # Test tooling, shared across all backends. Installed by `uv sync`.

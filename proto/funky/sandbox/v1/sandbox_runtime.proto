@@ -53,12 +53,13 @@ message ExecCommandResponse {
   // Process exit code. 0 conventionally means success.
   int32 exit_code = 1;
 
-  // Raw bytes the command wrote to standard output. Bytes, not a string, since
-  // command output is not guaranteed to be valid UTF-8.
-  bytes stdout = 2;
+  // What the command wrote to standard output, as text. A string rather than
+  // bytes for now — simpler for callers; backends decode the process output as
+  // UTF-8. This can move back to bytes if binary or non-UTF-8 output matters.
+  string stdout = 2;
 
-  // Raw bytes the command wrote to standard error.
-  bytes stderr = 3;
+  // What the command wrote to standard error, as text. See stdout.
+  string stderr = 3;
 }
 
 message DestroySandboxRequest {
