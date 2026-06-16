@@ -14,6 +14,9 @@ message Event {
   // de-duplicates it on stream reconnect.
   string id = 1;
 
+  // The session this event belongs to.
+  string session_id = 5;
+
   // When the event was recorded, set by the SessionStore on append. Unset while
   // still queued. Serializes to an RFC 3339 string in proto3 JSON.
   google.protobuf.Timestamp processed_at = 4;

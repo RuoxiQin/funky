@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package funky.type.v1;
+
+import "funky/type/v1/agent.proto";
+
+// Session is a running agent instance: one agent in one environment, working a
+// task and accumulating an Event history.
+//
+// The agent is snapshotted into the session — a resolved AgentConfig frozen at
+// creation, so later registry edits don't reach a live session and session-local
+// changes don't propagate back. The environment stays a reference by id. The
+// Event history lives in the SessionStore and is read separately, not here.
+message Session {
+  // SessionStore-assigned identifier.
+  string id = 1;
+
+  // The agent this session runs, snapshotted at creation.
+  AgentConfig agent_config = 2;
+
+  // EnvironmentConfig this session runs in, by ConfigRegistry id.
+  string environment_config_id = 3;
+}
