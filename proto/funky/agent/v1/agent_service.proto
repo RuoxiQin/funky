@@ -7,13 +7,13 @@ import "funky/type/v1/event.proto";
 import "funky/type/v1/sandbox.proto";
 
 // AgentService runs a single turn of the agent loop. Given an agent, the
-// conversation so far, a new prompt, and a sandbox to act in, it streams back
-// the events the agent produces. It holds no state across turns — the prior
-// events are passed in, not stored — and reaches the sandbox through the
-// SandboxRuntime.
+// conversation so far, a new prompt, and a sandbox to act in, it produces the
+// events the agent generates. It holds no state across turns — the prior events
+// are passed in, not stored — and reaches the sandbox through the SandboxRuntime.
 service AgentService {
-  // Run one turn against a sandbox, streaming the events the agent produces.
-  rpc RunTurn(RunTurnRequest) returns (stream RunTurnResponse);
+  // Run one turn against a sandbox and return every event it produced, in one
+  // response, once the turn is complete.
+  rpc RunTurn(RunTurnRequest) returns (RunTurnResponse);
 }
 
 message RunTurnRequest {
@@ -30,7 +30,9 @@ message RunTurnRequest {
   funky.type.v1.Sandbox sandbox = 4;
 }
 
+// RunTurnResponse is the whole turn at once: every event the agent produced, in
+// the order it produced them.
 message RunTurnResponse {
-  // One event produced during the turn.
-  funky.type.v1.Event event = 1;
+  // The events the turn produced, in order.
+  repeated funky.type.v1.Event events = 1;
 }

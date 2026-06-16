@@ -1,0 +1,30 @@
+# funky-agent-service-anthropic — an AgentService backend that runs one agent
+# turn against the Anthropic Messages API and streams the reply back as events.
+# Local server; the model call needs ANTHROPIC_API_KEY. See README.md to run it.
+[project]
+name = "funky-agent-service-anthropic"
+version = "0.0.0"
+description = "Local Anthropic-backed implementation of the Funky AgentService service."
+requires-python = ">=3.10"
+dependencies = [
+  "funky-protos",
+  # Pure-Python WSGI server. Required over stdlib wsgiref, which deadlocks
+  # connect-python's request-body drain on the error path (see server.py).
+  "waitress>=3",
+  # Official Anthropic SDK — the client for the Messages API a turn runs on.
+  "anthropic>=0.40",
+]
+
+[project.scripts]
+funky-agent-service-anthropic = "funky_agent_service_anthropic.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/funky_agent_service_anthropic"]
+
+# Resolve funky-protos from the workspace (gen/python) rather than PyPI.
+[tool.uv.sources]
+funky-protos = { workspace = true }
