@@ -29,8 +29,7 @@ Funky factors a cloud agent into **four small interfaces**. Implement, or pick, 
 
 ## Architecture
 
-<img width="7225" height="3530" alt="Agent and Environment-2026-06-13-180819" src="https://github.com/user-attachments/assets/ab5785b2-5ded-47d5-9ef0-a650db07479b" />
-
+<img width="7225" height="3530" alt="Agent and Environment-2026-06-16-030922" src="https://github.com/user-attachments/assets/095048d4-4ce7-432a-93d5-9ad4a2b16097" />
 
 Funky is built from four small interfaces, plus a thin **Client** that wires them together:
 
