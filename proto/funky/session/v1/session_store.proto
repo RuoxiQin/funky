@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package funky.session.v1;
+
+import "funky/type/v1/agent.proto";
+import "funky/type/v1/event.proto";
+import "funky/type/v1/session.proto";
+
+// SessionStore creates sessions and stores their append-only Event history. It
+// owns session records and their events; agent and environment configs live in
+// the ConfigRegistry and are resolved before a session is created.
+service SessionStore {
+  // Create a session from a resolved agent snapshot and an environment id.
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+
+  // Resolve a session by id.
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+
+  // Append an event to a session's history.
+  rpc AppendEvent(AppendEventRequest) returns (AppendEventResponse);
+
+  // Read a session's event history, in append order.
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+}
+
+message CreateSessionRequest {
+  // Resolved agent to snapshot into the session.
+  funky.type.v1.AgentConfig agent_config = 1;
+
+  // Environment the session runs in, by ConfigRegistry id.
+  string environment_config_id = 2;
+}
+
+message CreateSessionResponse {
+  funky.type.v1.Session session = 1;
+}
+
+message GetSessionRequest {
+  string id = 1;
+}
+
+message GetSessionResponse {
+  funky.type.v1.Session session = 1;
+}
+
+message AppendEventRequest {
+  // Session to append to.
+  string session_id = 1;
+
+  // The event to append. The caller sets the payload; the store assigns the
+  // event's id, session_id, and processed_at on the stored copy.
+  funky.type.v1.Event event = 2;
+}
+
+message AppendEventResponse {
+  // The stored event, with store-assigned id and processed_at.
+  funky.type.v1.Event event = 1;
+}
+
+message ListEventsRequest {
+  string session_id = 1;
+}
+
+message ListEventsResponse {
+  repeated funky.type.v1.Event events = 1;
+}
