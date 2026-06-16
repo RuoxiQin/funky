@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package funky.type.v1;
+
+// Sandbox is a live, isolated execution environment a SandboxRuntime hands out:
+// the place an agent's commands actually run.
+//
+// Unlike EnvironmentConfig — a pure spec stored in a ConfigRegistry — a Sandbox
+// is a running resource. The runtime returns one from create, addresses it by
+// id for exec, and tears it down on destroy. It carries no spec of its own; the
+// EnvironmentConfig it was provisioned from stays the caller's concern.
+//
+// It holds only an id for now. Runtime-observable state (status, a connection
+// endpoint, ...) will be added as backends need it — appending fields is a
+// backward-compatible change.
+message Sandbox {
+  // SandboxRuntime-assigned identifier. Addresses the sandbox for exec and
+  // destroy.
+  string id = 1;
+}
