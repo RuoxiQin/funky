@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package funky.type.v1;
+
+// Sandbox is a handle to the isolated environment a session's turns run in. The
+// SandboxRuntime creates it from an EnvironmentConfig, runs commands in it, and
+// destroys it; the AgentService runs a turn against it.
+//
+// A handle for now — just the id the SandboxRuntime addresses it by. Connection
+// and status details are added as the SandboxRuntime contract takes shape.
+message Sandbox {
+  // Runtime-assigned identifier for the sandbox.
+  string id = 1;
+}
