@@ -15,5 +15,11 @@ plugins:
     out: gen/python
   - remote: buf.build/protocolbuffers/pyi
     out: gen/python
+  # The connectrpc plugin is paired with the connectrpc runtime pinned in
+  # gen/python/pyproject.toml. That runtime's PyPI package was renamed from
+  # `connect-python` (≤0.9.0, private `connectrpc._codec`) to `connectrpc`
+  # (≥0.10, public `connectrpc.codec`) — current plugins import the public
+  # module, so the runtime floor is `connectrpc>=0.10`. The protobuf plugins
+  # above target the stable google.protobuf API, so all three are left to float.
   - remote: buf.build/connectrpc/python
     out: gen/python
