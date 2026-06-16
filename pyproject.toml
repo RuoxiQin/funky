@@ -1,0 +1,17 @@
+# uv workspace root. Not a package itself — it just ties the generated protobuf
+# stubs (gen/python) and the service backends together so they share one
+# virtualenv and resolve each other by path instead of via PyPI.
+#
+# Members are added here as new backends land, e.g.
+#   "config_registry/gcp_python_postgres", "session_store/local_python_sqlite".
+[tool.uv.workspace]
+members = [
+  "gen/python",
+  "config_registry/local_python_jsonl",
+]
+
+# Test tooling, shared across all backends. Installed by `uv sync`.
+[dependency-groups]
+dev = [
+  "pytest>=8",
+]
