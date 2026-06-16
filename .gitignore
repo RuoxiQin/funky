@@ -1,0 +1,3 @@
+# Generated protobuf code — the .proto files are the source of truth.
+# Regenerate with `buf generate`.
+/gen/

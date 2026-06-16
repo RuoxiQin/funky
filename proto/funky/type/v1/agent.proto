@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package funky.type.v1;
+
+// AgentConfig is the specification of an agent: the model it runs on, the
+// system prompt that steers it, and a human-readable name.
+//
+// It is the unit a ConfigRegistry stores and hands back by id. AgentConfig is
+// intentionally a pure spec and carries no server-assigned id — the id is the
+// registry's handle, returned from create and supplied to get.
+message AgentConfig {
+  // Human-readable name for the agent. Not unique; for display and debugging.
+  string name = 1;
+
+  // Model identifier the agent runs on, e.g. "gemini-3.5-flash".
+  string model = 2;
+
+  // System prompt that defines the agent's behavior and persona.
+  string system_prompt = 3;
+}

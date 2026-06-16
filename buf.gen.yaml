@@ -1,0 +1,19 @@
+# buf.gen.yaml — code generation config.
+# Docs: https://buf.build/docs/configuration/v2/buf-gen-yaml
+#
+# Targets Python via Buf's remote plugins (no local protoc plugins to install):
+#   - protocolbuffers/python -> *_pb2.py   (message classes)
+#   - protocolbuffers/pyi     -> *_pb2.pyi  (type stubs for IDEs / mypy)
+#
+# No managed mode: that mainly fixes Go's go_package / Java's java_package, which
+# Python doesn't have, so the .proto files stay language-neutral on their own.
+#
+# No RPC plugin yet — these are messages only. When the first service lands we
+# add the RPC stub plugin (buf.build/grpc/python or a Connect plugin, depending
+# on the gRPC-vs-Connect decision).
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/python
+    out: gen/python
+  - remote: buf.build/protocolbuffers/pyi
+    out: gen/python
