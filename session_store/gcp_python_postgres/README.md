@@ -97,3 +97,31 @@ Postgres, point it at a disposable async URL:
 FUNKY_SESSION_STORE_TEST_DATABASE_URL="postgresql+asyncpg://user:pass@localhost/funky_test" \
   uv run pytest session_store/gcp_python_postgres
 ```
+
+## Deploy to Cloud Run
+
+The [`Dockerfile`](./Dockerfile) builds a self-contained image: it runs
+`buf generate` and installs this backend from the committed lockfile, then serves
+on `$PORT` bound to all interfaces (Cloud Run's contract). **Build with the
+repository root as the context** — the backend resolves `funky-protos` from the
+uv workspace.
+
+```bash
+# From the repository root. Cloud Run is linux/amd64.
+IMAGE="REGION-docker.pkg.dev/PROJECT/REPO/funky-session-store-postgres"
+docker build -f session_store/gcp_python_postgres/Dockerfile --platform linux/amd64 -t "$IMAGE" .
+docker push "$IMAGE"
+
+gcloud run deploy funky-session-store-postgres \
+  --image "$IMAGE" --region REGION \
+  --service-account funky-runtime@PROJECT.iam.gserviceaccount.com \
+  --set-env-vars INSTANCE_CONNECTION_NAME=PROJECT:REGION:INSTANCE,DB_USER=funky,DB_NAME=funky \
+  --set-secrets DB_PASS=funky-db-pass:latest
+```
+
+The connector authenticates as the Cloud Run service account, so grant it
+`roles/cloudsql.client` — no `gcloud auth ...` and no Cloud SQL proxy sidecar are
+needed. For IAM database auth, drop `DB_PASS` and set `DB_IAM_AUTH=true`. For a
+private-IP instance, set `DB_IP_TYPE=private` and give the service [Direct VPC
+egress](https://cloud.google.com/run/docs/configuring/vpc-direct-vpc) (or a
+Serverless VPC Access connector) onto the instance's network.
