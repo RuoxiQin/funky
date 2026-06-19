@@ -49,6 +49,8 @@ From the repository root:
 buf generate            # regenerate the protobuf/ConnectRPC stubs into gen/python
 uv sync                 # create the workspace venv and install the backend + deps
 
+gcloud auth application-default login   # credentials for the Cloud SQL connector
+
 export INSTANCE_CONNECTION_NAME="my-project:us-central1:my-instance"
 export DB_USER="funky" DB_NAME="funky" DB_PASS="..."
 uv run funky-session-store-postgres --port 8081
