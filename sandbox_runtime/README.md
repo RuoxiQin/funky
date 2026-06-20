@@ -15,6 +15,7 @@ named by the three axes that distinguish a backend:
 | Directory | Deployment | Language | Sandbox |
 |---|---|---|---|
 | `local_python_docker` | local | Python | Docker container |
+| `gcp_python_modal` | GCP (Cloud Run) | Python | Modal Sandbox |
 | *(future)* `gcp_python_firecracker` | GCP | Python | Firecracker microVM |
 
 Every backend implements the same wire contract, so the forthcoming **Client**

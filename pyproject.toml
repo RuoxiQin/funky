@@ -11,9 +11,19 @@ members = [
   "session_store/local_python_jsonl",
   "session_store/gcp_python_postgres",
   "sandbox_runtime/local_python_docker",
+  "sandbox_runtime/gcp_python_modal",
   "agent_service/local_python_anthropic",
   "client/python",
 ]
+
+# The Modal SDK (sandbox_runtime/gcp_python_modal) declares a conservative
+# `protobuf<7` cap, but the buf-generated stubs are 7.x gencode and need the 7.x
+# runtime. protobuf is forward-compatible — modal's own 6.x gencode runs fine on
+# the 7.x runtime (runtime >= gencode is the supported direction) — so override
+# the cap to keep a single protobuf across the workspace rather than pinning the
+# codegen plugins (and every other backend) down to 6.x.
+[tool.uv]
+override-dependencies = ["protobuf>=7.35.1"]
 
 # Test tooling, shared across all backends. Installed by `uv sync`.
 [dependency-groups]
