@@ -45,9 +45,9 @@ def _parse_sse(text: str) -> list[tuple[str, dict]]:
     return frames
 
 
-def test_healthz():
+def test_health():
     client, _ = _app([])
-    assert client.get("/healthz").json() == {"status": "ok"}
+    assert client.get("/health").json() == {"status": "ok"}
 
 
 def test_create_agent_environment_session_round_trip():
