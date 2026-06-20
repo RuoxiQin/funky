@@ -14,7 +14,7 @@ handled yet — deploy the backends ``--allow-unauthenticated`` for now.
 
 Endpoints (JSON in, JSON out, snake_case throughout):
 
-    GET  /healthz                          -> {"status": "ok"}
+    GET  /health                           -> {"status": "ok"}
     POST /v1/agents                        -> {"id": "agt_..."}
     POST /v1/environments                  -> {"id": "env_..."}
     POST /v1/sessions                      -> {"id": "ses_..."}
@@ -70,7 +70,7 @@ def default_urls() -> dict[str, str]:
 def create_app(client: FunkyClient) -> Starlette:
     """Build the ASGI app over a FunkyClient (injected, so tests pass fakes)."""
 
-    async def healthz(_: Request) -> Response:
+    async def health(_: Request) -> Response:
         return JSONResponse({"status": "ok"})
 
     async def create_agent(request: Request) -> Response:
@@ -115,7 +115,10 @@ def create_app(client: FunkyClient) -> Starlette:
         return JSONResponse({"events": [_event_dict(e) for e in events]})
 
     routes = [
-        Route("/healthz", healthz, methods=["GET"]),
+        # NB: not "/healthz" — Google's frontend reserves that path and answers
+        # it with its own 404 before the request reaches a Cloud Run container,
+        # so the health route would be unreachable exactly where it's needed.
+        Route("/health", health, methods=["GET"]),
         Route("/v1/agents", create_agent, methods=["POST"]),
         Route("/v1/environments", create_environment, methods=["POST"]),
         Route("/v1/sessions", create_session, methods=["POST"]),

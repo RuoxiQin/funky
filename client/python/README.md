@@ -140,7 +140,7 @@ The endpoints mirror the four client calls (JSON in, JSON out, snake_case):
 
 | Method & path | Body | Returns |
 |---|---|---|
-| `GET /healthz` | — | `{"status":"ok"}` |
+| `GET /health` | — | `{"status":"ok"}` (not `/healthz` — Google's frontend reserves that path) |
 | `POST /v1/agents` | `{"name","model","system_prompt"}` | `{"id":"agt_…"}` |
 | `POST /v1/environments` | `{}` (optional) | `{"id":"env_…"}` |
 | `POST /v1/sessions` | `{"agent_id","environment_id"}` | `{"id":"ses_…"}` |
