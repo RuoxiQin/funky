@@ -12,6 +12,7 @@ members = [
   "session_store/gcp_python_postgres",
   "sandbox_runtime/local_python_docker",
   "agent_service/local_python_anthropic",
+  "agent_service/gcp_python_openrouter",
   "client/python",
 ]
 
