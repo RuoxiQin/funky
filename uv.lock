@@ -7,6 +7,7 @@ members = [
     "funky-agent-service-anthropic",
     "funky-client",
     "funky-config-registry-jsonl",
+    "funky-config-registry-postgres",
     "funky-protos",
     "funky-sandbox-runtime-docker",
     "funky-session-store-jsonl",
@@ -854,6 +855,25 @@ dependencies = [
 requires-dist = [
     { name = "funky-protos", editable = "gen/python" },
     { name = "waitress", specifier = ">=3" },
+]
+
+[[package]]
+name = "funky-config-registry-postgres"
+version = "0.0.0"
+source = { editable = "config_registry/gcp_python_postgres" }
+dependencies = [
+    { name = "cloud-sql-python-connector", extra = ["asyncpg"] },
+    { name = "funky-protos" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cloud-sql-python-connector", extras = ["asyncpg"], specifier = ">=1.12" },
+    { name = "funky-protos", editable = "gen/python" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2" },
+    { name = "uvicorn", specifier = ">=0.30" },
 ]
 
 [[package]]
