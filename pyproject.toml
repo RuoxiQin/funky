@@ -13,6 +13,7 @@ members = [
   "sandbox_runtime/local_python_docker",
   "sandbox_runtime/gcp_python_modal",
   "agent_service/local_python_anthropic",
+  "agent_service/gcp_python_openrouter",
   "client/python",
 ]
 

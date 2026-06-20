@@ -1,0 +1,63 @@
+# Cloud Run continuous-deployment config, matching the SessionStore backend's
+# (session_store/gcp_python_postgres/cloudbuild.yaml) with one fix carried over:
+# the Docker build context is the repository root (".") instead of
+# agent_service/gcp_python_openrouter. buf generate reads
+# buf.gen.yaml/buf.yaml/proto/ and the backend resolves funky-protos from the uv
+# workspace, all at the repo root — a package-directory context fails with
+# "read buf.gen.yaml: file does not exist".
+#
+# _SERVICE_NAME / _DEPLOY_REGION / the _AR_* and _TRIGGER_ID substitutions are set
+# by the Cloud Run trigger; the defaults below let `gcloud builds submit` run it by
+# hand (see README.md).
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '--no-cache'
+      - '-t'
+      - >-
+        $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+      # Build context = repository root (was agent_service/gcp_python_openrouter).
+      - .
+      - '-f'
+      - agent_service/gcp_python_openrouter/Dockerfile
+    id: Build
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - >-
+        $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+    id: Push
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    args:
+      - run
+      - services
+      - update
+      - $_SERVICE_NAME
+      - '--platform=managed'
+      - >-
+        --image=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+      - >-
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID
+      - '--region=$_DEPLOY_REGION'
+      - '--quiet'
+    id: Deploy
+    entrypoint: gcloud
+images:
+  - >-
+    $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+options:
+  substitutionOption: ALLOW_LOOSE
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _PLATFORM: managed
+  _TRIGGER_ID: ''
+  _SERVICE_NAME: agent-service
+  _DEPLOY_REGION: us-central1
+  _AR_HOSTNAME: us-central1-docker.pkg.dev
+  _AR_REPOSITORY: cloud-run-source-deploy
+  _AR_PROJECT_ID: funky-485504
+tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
+  - agent-service
