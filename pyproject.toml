@@ -2,12 +2,12 @@
 # stubs (gen/python) and the service backends together so they share one
 # virtualenv and resolve each other by path instead of via PyPI.
 #
-# Members are added here as new backends land, e.g.
-#   "config_registry/gcp_python_postgres".
+# Members are added here as new backends land.
 [tool.uv.workspace]
 members = [
   "gen/python",
   "config_registry/local_python_jsonl",
+  "config_registry/gcp_python_postgres",
   "session_store/local_python_jsonl",
   "session_store/gcp_python_postgres",
   "sandbox_runtime/local_python_docker",
