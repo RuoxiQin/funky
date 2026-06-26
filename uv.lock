@@ -11,6 +11,7 @@ members = [
     "funky-agent-service-anthropic",
     "funky-agent-service-openrouter",
     "funky-client",
+    "funky-client-local",
     "funky-config-registry-jsonl",
     "funky-config-registry-postgres",
     "funky-protos",
@@ -929,6 +930,23 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.30" },
 ]
 provides-extras = ["local", "server"]
+
+[[package]]
+name = "funky-client-local"
+version = "0.0.0"
+source = { editable = "client/local_python" }
+dependencies = [
+    { name = "funky-protos" },
+    { name = "starlette" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "funky-protos", editable = "gen/python" },
+    { name = "starlette", specifier = ">=0.37" },
+    { name = "uvicorn", specifier = ">=0.30" },
+]
 
 [[package]]
 name = "funky-config-registry-jsonl"

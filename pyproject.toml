@@ -15,6 +15,7 @@ members = [
   "agent_service/local_python_anthropic",
   "agent_service/gcp_python_openrouter",
   "client/gcp_python",
+  "client/local_python",
 ]
 
 # The Modal SDK (sandbox_runtime/gcp_python_modal) declares a conservative
