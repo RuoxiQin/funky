@@ -10,40 +10,53 @@ a fresh Docker sandbox) and the response streams back into the chat.
 
 ![three states: first run, the New Agent modal, and a live conversation]
 
-## Prerequisites
+## Run it
 
-The frontend talks to the Funky **client** on `:8000`. Bring up the whole local
-stack from the repo root first:
+Two ways, both serving the UI at <http://localhost:5173>.
+
+### Option A — the whole stack with Docker Compose (recommended)
+
+From the repo root, this builds and serves the frontend alongside the backends:
 
 ```bash
 cd ..                        # repo root
 cp .env.example .env         # then put your ANTHROPIC_API_KEY in it
-docker compose up --build    # client on :8000, four backends behind it
+docker compose up --build    # backends, client (:8000), and the web UI (:5173)
 ```
 
-(See the [repo README](../README.md) for what the stack is.)
+The `web` service builds the production bundle and serves it with nginx, which
+reverse-proxies `/v1` and `/health` to the `client` service (so the browser stays
+same-origin — no CORS). There's no hot reload, so use Option B when iterating on
+the UI.
 
-## Run the frontend
+### Option B — Vite dev server (for working on the UI, with hot reload)
+
+Bring up the stack so the client is reachable on `:8000` (`docker compose up` from
+the repo root), then:
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # http://localhost:5173 (or the next free port)
 ```
 
-Open http://localhost:5173 and click **+ NEW AGENT** (it's pre-filled with a
-sample). Create it, then type a message and hit **SEND** (or Enter).
+The dev server proxies the API to the client itself, so this works even while the
+Compose `web` service is running (Vite just picks the next free port).
+
+Either way, open the UI and click **+ NEW AGENT** (pre-filled with a sample),
+create it, then type a message and hit **SEND** (or Enter).
 
 ### How it connects (no CORS, no backend changes)
 
-The Funky client ships no CORS headers, so instead of calling it cross-origin the
-Vite dev server **proxies** the API paths to it (see `vite.config.ts`):
+The Funky client ships no CORS headers, so the browser never calls it
+cross-origin — a proxy sits in front and forwards the API paths, keeping every
+request same-origin. In dev that proxy is the Vite dev server (`vite.config.ts`);
+under Docker Compose it's nginx (`nginx.conf`). The dev-server path:
 
 ```
 browser ──/v1/*, /health──> Vite dev server (:5173) ──proxy──> client (:8000)
 ```
 
-So the app only ever makes same-origin requests. Point the proxy at a client on a
-different host/port with `VITE_API_TARGET`:
+Point the dev proxy at a client on a different host/port with `VITE_API_TARGET`:
 
 ```bash
 VITE_API_TARGET=http://192.168.1.50:8000 npm run dev

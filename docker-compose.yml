@@ -1,18 +1,19 @@
-# The whole local Funky stack in one file: the four backends plus the REST client,
-# all built from the repo as the build context (each Dockerfile generates the proto
-# stubs and installs just its own package). Bring it up from the repo root:
+# The whole local Funky stack in one file: the four backends, the REST client, and
+# the web frontend, all built from the repo (each Dockerfile installs just its own
+# package). Bring it up from the repo root:
 #
 #   cp .env.example .env        # then put your ANTHROPIC_API_KEY in it
 #   docker compose up --build
 #
-# Then drive a turn against the client on http://127.0.0.1:8000 (see
-# client/local_python/README.md). Only the client is published to the host; the
-# four backends talk to each other over the compose network by service name.
+# Then open the chat UI at http://localhost:5173, or drive the client directly on
+# http://127.0.0.1:8000 (see client/local_python/README.md). The web frontend
+# (:5173) and the client (:8000) are published to the host; the four backends talk
+# to each other over the compose network by service name.
 #
 # Ports mirror each backend's own default: config-registry 8080, session-store
-# 8081, sandbox-runtime 8082, agent-service 8083, client 8000. Every server is
-# launched with --host 0.0.0.0 (their default is loopback-only, which siblings
-# can't reach) via each image's CMD.
+# 8081, sandbox-runtime 8082, agent-service 8083, client 8000, web 5173. Every
+# backend server is launched with --host 0.0.0.0 (their default is loopback-only,
+# which siblings can't reach) via each image's CMD.
 
 services:
   config-registry:
@@ -70,7 +71,7 @@ services:
     build:
       context: .
       dockerfile: client/local_python/Dockerfile
-    # The one service published to the host.
+    # Published to the host; also the upstream the web frontend proxies to.
     ports:
       - "8000:8000"
     # The client reads each backend's base URL from the environment.
@@ -84,6 +85,20 @@ services:
       - session-store
       - sandbox-runtime
       - agent-service
+    restart: unless-stopped
+
+  web:
+    # The pixel-art frontend: nginx serves the built SPA and reverse-proxies /v1
+    # and /health to the client, so the browser only talks to this one origin
+    # (no CORS). For active UI development with hot reload, skip this service and
+    # run `npm run dev` in web/ instead (see web/README.md).
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - client
     restart: unless-stopped
 
 # Persist the JSONL stores across `compose down`. Remove with `compose down -v`.
