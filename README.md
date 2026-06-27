@@ -51,19 +51,21 @@ Each is an interface. Funky doesn't care whether your `SandboxRuntime` is backed
 ## Run the whole stack locally with Docker Compose
 
 The repo ships a fully local implementation of each of the four contracts plus the
-REST client, wired together in [`docker-compose.yml`](./docker-compose.yml): a
-JSONL [`ConfigRegistry`](./config_registry/local_python_jsonl) and
+REST client and a web UI, wired together in [`docker-compose.yml`](./docker-compose.yml):
+a JSONL [`ConfigRegistry`](./config_registry/local_python_jsonl) and
 [`SessionStore`](./session_store/local_python_jsonl), a Docker-backed
 [`SandboxRuntime`](./sandbox_runtime/local_python_docker), an Anthropic
-[`AgentService`](./agent_service/local_python_anthropic), and the
-[`Client`](./client/local_python) as the one published front door (`:8000`).
+[`AgentService`](./agent_service/local_python_anthropic), the
+[`Client`](./client/local_python) front door (`:8000`), and a pixel-art
+[web frontend](./web) (`:5173`).
 
 ```bash
 cp .env.example .env        # then put your ANTHROPIC_API_KEY in it
 docker compose up --build
 ```
 
-Then drive a turn against the client (see [its README](./client/local_python)):
+Then open the chat UI at <http://localhost:5173>, or drive the client directly
+(see [its README](./client/local_python)):
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/v1/agents \
