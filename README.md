@@ -78,11 +78,15 @@ curl -s -X POST http://127.0.0.1:8000/v1/agents \
   -H 'Content-Type: application/json' \
   -d '{"name":"coder","model":"claude-sonnet-4-6","system_prompt":"Be brief."}'
 
-# Open an environment and a session, then send a message
+# Create an environment -> {"id":"env_..."}
 curl -s -X POST http://127.0.0.1:8000/v1/environments -d '{}'
+
+# Open a session for that agent + environment -> {"id":"ses_..."}
 curl -s -X POST http://127.0.0.1:8000/v1/sessions \
   -H 'Content-Type: application/json' \
   -d '{"agent_id":"agt_...","environment_id":"env_..."}'
+
+# Send a message; runs one agent turn -> {"events":[...]}
 curl -s -X POST http://127.0.0.1:8000/v1/sessions/ses_.../messages \
   -H 'Content-Type: application/json' -d '{"prompt":"List the files in the repo."}'
 ```
