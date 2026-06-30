@@ -24,6 +24,7 @@ from waitress.server import create_server
 from funky.agent.v1.agent_service_connect import AgentServiceWSGIApplication
 from funky.sandbox.v1.sandbox_runtime_connect import SandboxRuntimeClientSync
 
+from ._auth import id_token_auth
 from .loop import DEFAULT_MAX_TOKENS
 from .service import AgentServiceOpenRouter
 
@@ -54,7 +55,13 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    sandbox_client = SandboxRuntimeClientSync(args.sandbox_runtime_url)
+    # A private (Cloud Run) SandboxRuntime requires a Google OIDC ID token; the
+    # agent execs its tools by calling it directly, so it must authenticate that
+    # hop itself. Local http runtimes are called as-is. See _auth.id_token_auth.
+    sandbox_client = SandboxRuntimeClientSync(
+        args.sandbox_runtime_url,
+        interceptors=id_token_auth(args.sandbox_runtime_url),
+    )
     service = AgentServiceOpenRouter(sandbox_client, max_tokens=args.max_tokens)
     app = AgentServiceWSGIApplication(service)
 
