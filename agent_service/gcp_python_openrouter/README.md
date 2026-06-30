@@ -167,3 +167,27 @@ gcloud run deploy funky-agent-service-openrouter \
   --set-secrets OPENROUTER_API_KEY=openrouter-api-key:latest \
   --set-env-vars SANDBOX_RUNTIME_URL=https://your-sandbox-runtime.run.app
 ```
+
+### Calling a private SandboxRuntime
+
+The agent execs its tools by calling the SandboxRuntime directly — a hop the
+client's auth never covers. When that runtime is `https` (Cloud Run), the agent
+mints a Google OIDC ID token (audience = the runtime URL) and attaches it to every
+`exec_command`, so the runtime can stay private. Two things must hold:
+
+- **Identity.** Grant the agent service's runtime service account
+  `roles/run.invoker` on the SandboxRuntime. A bare IAM grant is not enough on its
+  own — and neither is the token without the grant; both are required.
+
+  ```bash
+  AGENT_SA=$(gcloud run services describe agent-service --region REGION \
+    --format='value(spec.template.spec.serviceAccountName)')
+  # If empty, the service uses the Compute Engine default SA:
+  #   PROJECT_NUMBER-compute@developer.gserviceaccount.com
+  gcloud run services add-iam-policy-binding sandbox-runtime \
+    --region REGION --member "serviceAccount:$AGENT_SA" --role roles/run.invoker
+  ```
+
+- **Dependency.** The token path needs `google-auth`, already a dependency of this
+  backend (the Cloud Run image installs it). For a local `http` runtime the agent
+  skips auth entirely, so local dev and the tests are untouched.

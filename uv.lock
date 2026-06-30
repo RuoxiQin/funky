@@ -886,6 +886,7 @@ version = "0.0.0"
 source = { editable = "agent_service/gcp_python_openrouter" }
 dependencies = [
     { name = "funky-protos" },
+    { name = "google-auth", extra = ["requests"] },
     { name = "openai" },
     { name = "waitress" },
 ]
@@ -893,6 +894,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "funky-protos", editable = "gen/python" },
+    { name = "google-auth", extras = ["requests"], specifier = ">=2.0" },
     { name = "openai", specifier = ">=1.40" },
     { name = "waitress", specifier = ">=3" },
 ]

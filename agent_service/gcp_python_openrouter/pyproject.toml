@@ -15,6 +15,11 @@ dependencies = [
   # Official OpenAI SDK, pointed at OpenRouter's base_url — OpenRouter exposes the
   # OpenAI Chat Completions wire format, and this is its recommended client.
   "openai>=1.40",
+  # Mint Cloud Run ID tokens so the agent can call a private (auth-required)
+  # SandboxRuntime; see funky_agent_service_openrouter._auth. The [requests]
+  # extra pulls in `requests`, which google.auth.transport.requests needs but
+  # google-auth does not install on its own. Only used for https runtimes.
+  "google-auth[requests]>=2.0",
 ]
 
 [project.scripts]
