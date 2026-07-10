@@ -1,5 +1,7 @@
-import 'dotenv/config';
+import { config } from "dotenv";
 import { defineConfig } from 'drizzle-kit';
+
+config({ path: "../../.env" }); // root .env — cwd is packages/db when drizzle-kit runs
 
 export default defineConfig({
   out: './migrations',

@@ -17,16 +17,40 @@ importers:
 
   apps/api:
     dependencies:
+      '@funky/configs':
+        specifier: workspace:*
+        version: link:../../packages/configs
+      '@funky/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@hono/node-server':
         specifier: ^2.0.8
         version: 2.0.8(hono@4.12.29)
+      '@hono/zod-validator':
+        specifier: ^0.7.4
+        version: 0.7.6(hono@4.12.29)(zod@4.4.3)
+      dotenv:
+        specifier: ^17.2.0
+        version: 17.4.2
       hono:
         specifier: ^4.12.27
         version: 4.12.29
+      pg:
+        specifier: ^8.16.0
+        version: 8.22.0
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.2
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
     devDependencies:
       '@types/node':
-        specifier: ^20.11.17
-        version: 20.19.43
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.20.0
       tsx:
         specifier: ^4.7.1
         version: 4.23.0
@@ -41,7 +65,7 @@ importers:
         version: link:../db
       drizzle-orm:
         specifier: ^1.0.0-beta.2
-        version: 1.0.0-rc.4-5d5b77c(@types/pg@8.20.0)(pg@8.22.0)
+        version: 1.0.0-rc.4-5d5b77c(@types/pg@8.20.0)(pg@8.22.0)(zod@4.4.3)
       uuid:
         specifier: ^13.0.0
         version: 13.0.2
@@ -50,7 +74,7 @@ importers:
     dependencies:
       drizzle-orm:
         specifier: ^1.0.0-beta.2
-        version: 1.0.0-rc.4-5d5b77c(@types/pg@8.20.0)(pg@8.22.0)
+        version: 1.0.0-rc.4-5d5b77c(@types/pg@8.20.0)(pg@8.22.0)(zod@4.4.3)
       pg:
         specifier: ^8.22.0
         version: 8.22.0
@@ -388,12 +412,15 @@ packages:
     peerDependencies:
       hono: ^4
 
+  '@hono/zod-validator@0.7.6':
+    resolution: {integrity: sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw==}
+    peerDependencies:
+      hono: '>=3.9.0'
+      zod: ^3.25.0 || ^4.0.0
+
   '@js-temporal/polyfill@0.5.1':
     resolution: {integrity: sha512-hloP58zRVCRSpgDxmqCWJNlizAlUgJFqG2ypq79DCvyv9tHjRYMDOcPFjzfl/A1/YxDvRCZz8wvZvmapQnKwFQ==}
     engines: {node: '>=12'}
-
-  '@types/node@20.19.43':
-    resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
 
   '@types/node@22.20.1':
     resolution: {integrity: sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q==}
@@ -632,6 +659,9 @@ packages:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@drizzle-team/brocli@0.11.0': {}
@@ -796,13 +826,14 @@ snapshots:
     dependencies:
       hono: 4.12.29
 
+  '@hono/zod-validator@0.7.6(hono@4.12.29)(zod@4.4.3)':
+    dependencies:
+      hono: 4.12.29
+      zod: 4.4.3
+
   '@js-temporal/polyfill@0.5.1':
     dependencies:
       jsbi: 4.3.2
-
-  '@types/node@20.19.43':
-    dependencies:
-      undici-types: 6.21.0
 
   '@types/node@22.20.1':
     dependencies:
@@ -824,10 +855,11 @@ snapshots:
       get-tsconfig: 4.14.0
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.4-5d5b77c(@types/pg@8.20.0)(pg@8.22.0):
+  drizzle-orm@1.0.0-rc.4-5d5b77c(@types/pg@8.20.0)(pg@8.22.0)(zod@4.4.3):
     optionalDependencies:
       '@types/pg': 8.20.0
       pg: 8.22.0
+      zod: 4.4.3
 
   esbuild@0.25.12:
     optionalDependencies:
@@ -962,3 +994,5 @@ snapshots:
   uuid@13.0.2: {}
 
   xtend@4.0.2: {}
+
+  zod@4.4.3: {}
