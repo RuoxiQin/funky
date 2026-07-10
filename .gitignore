@@ -1,17 +1,3 @@
-# Generated protobuf code — the .proto files are the source of truth.
-# Regenerate with `buf generate`. The package shell (gen/python/pyproject.toml)
-# is committed so the stubs are importable; the generated modules under it are
-# not.
-/gen/python/funky/
-
-# Python
-.venv/
-__pycache__/
-*.egg-info/
-
-# Example runtime data (the JSONL config stores).
-data/
-
 # dependencies
 node_modules/
 
