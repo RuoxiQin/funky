@@ -1,8 +1,0 @@
-# Keep the build context small and reproducible: deps and the bundle are produced
-# inside the image, and local env/editor files shouldn't leak in.
-node_modules
-dist
-.env
-.env.local
-*.local
-.DS_Store
