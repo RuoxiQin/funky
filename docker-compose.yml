@@ -1,107 +1,56 @@
-# The whole local Funky stack in one file: the four backends, the REST client, and
-# the web frontend, all built from the repo (each Dockerfile installs just its own
-# package). Bring it up from the repo root:
-#
-#   cp .env.example .env        # then put your ANTHROPIC_API_KEY in it
-#   docker compose up --build
-#
-# Then open the chat UI at http://localhost:5173, or drive the client directly on
-# http://127.0.0.1:8000 (see client/local_python/README.md). The web frontend
-# (:5173) and the client (:8000) are published to the host; the four backends talk
-# to each other over the compose network by service name.
-#
-# Ports mirror each backend's own default: config-registry 8080, session-store
-# 8081, sandbox-runtime 8082, agent-service 8083, client 8000, web 5173. Every
-# backend server is launched with --host 0.0.0.0 (their default is loopback-only,
-# which siblings can't reach) via each image's CMD.
+# docker-compose.yml (repo root) — the quickstart stack: postgres + migrate + api.
+# Bring up:   docker compose up --build
+# Tear down:  docker compose down          (-v to also wipe the database)
 
 services:
-  config-registry:
-    build:
-      context: .
-      dockerfile: config_registry/local_python_jsonl/Dockerfile
-    # JSONL configs persist in a named volume so they survive `compose down`.
-    volumes:
-      - config-data:/data
-    restart: unless-stopped
-
-  session-store:
-    build:
-      context: .
-      dockerfile: session_store/local_python_jsonl/Dockerfile
-    # JSONL sessions + events persist in a named volume.
-    volumes:
-      - session-data:/data
-    restart: unless-stopped
-
-  sandbox-runtime:
-    build:
-      context: .
-      dockerfile: sandbox_runtime/local_python_docker/Dockerfile
-    # Option 1 — Docker-out-of-Docker: bind-mount the host daemon's socket so the
-    # runtime can spawn each sandbox as a *sibling* container on the host. Simple
-    # and shares the host image cache, at the cost of giving this one service
-    # effective root on the host daemon. Sandboxes self-clean per turn (the client
-    # destroys them in a finally) and carry a funky.sandbox=true label, so any left
-    # by a crash are reapable:
-    #   docker rm -f $(docker ps -aq --filter label=funky.sandbox)
-    #
-    # To harden without code changes (the runtime honours DOCKER_HOST via
-    # docker.from_env()), drop the socket mount and put a docker-socket-proxy in
-    # front instead, then set `environment: DOCKER_HOST: tcp://docker-proxy:2375`.
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-
-  agent-service:
-    build:
-      context: .
-      dockerfile: agent_service/local_python_anthropic/Dockerfile
+  postgres:
+    image: postgres:16
     environment:
-      # A turn makes a real, billed Anthropic call; taken from .env (or the shell).
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
-      # The sandbox URL is a CLI flag on the server (no env fallback); the image's
-      # CMD forwards this var into --sandbox-runtime-url.
-      SANDBOX_RUNTIME_URL: http://sandbox-runtime:8082
-    depends_on:
-      - sandbox-runtime
-    restart: unless-stopped
-
-  client:
-    build:
-      context: .
-      dockerfile: client/local_python/Dockerfile
-    # Published to the host; also the upstream the web frontend proxies to.
+      POSTGRES_USER: funky
+      POSTGRES_PASSWORD: funky
+      POSTGRES_DB: funky
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     ports:
-      - "8000:8000"
-    # The client reads each backend's base URL from the environment.
+      - "5432:5432" # host access for psql/drizzle studio; stop any standalone funky-pg first
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U funky -d funky"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  # One-shot: applies migrations, exits. The api waits for it to succeed —
+  # this is "migrate on boot" done compose-natively.
+  migrate:
+    build: .
+    command: ["pnpm", "-F", "@funky/db", "migrate"]
     environment:
-      CONFIG_REGISTRY_URL: http://config-registry:8080
-      SESSION_STORE_URL: http://session-store:8081
-      SANDBOX_RUNTIME_URL: http://sandbox-runtime:8082
-      AGENT_SERVICE_URL: http://agent-service:8083
+      DATABASE_URL: postgres://funky:funky@postgres:5432/funky # ← service name, not localhost
     depends_on:
-      - config-registry
-      - session-store
-      - sandbox-runtime
-      - agent-service
-    restart: unless-stopped
+      postgres:
+        condition: service_healthy
 
-  web:
-    # The pixel-art frontend: nginx serves the built SPA and reverse-proxies /v1
-    # and /health to the client, so the browser only talks to this one origin
-    # (no CORS). For active UI development with hot reload, skip this service and
-    # run `npm run dev` in web/ instead (see web/README.md).
-    build:
-      context: ./web
-      dockerfile: Dockerfile
+  api:
+    build: .
     ports:
-      - "5173:80"
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://funky:funky@postgres:5432/funky
+      FUNKY_AUTH_TOKEN: ${FUNKY_AUTH_TOKEN:-dev-token-change-me-000} # reads host .env if present
     depends_on:
-      - client
-    restart: unless-stopped
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
-# Persist the JSONL stores across `compose down`. Remove with `compose down -v`.
 volumes:
-  config-data:
-  session-data:
+  pgdata:

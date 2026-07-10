@@ -1,112 +1,80 @@
 # Funky
 
-> An open protocol for cloud-native AI agents: pluggable **sandboxes**, **session stores**, and **runtimes** behind one contract.
+Spin up agent swarms on demand. Define an agent (system prompt + model), give it a sandboxed environment, send it work — Funky handles the durability and the infrastructure.
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
-
-**Funky** defines a small, open contract for running AI agents in the cloud. Bring your own sandbox, your own session storage, and your own agent runtime. Funky is the seam that holds them together so none of them can lock you in.
-
-It takes its cues from managed agent platforms, like Anthropic's managed agents, where the provider runs the whole loop for you: *create an agent, give it an environment, open a session, send it events.* Funky keeps that developer experience but makes every moving part swappable and self-hostable.
-
-## Why Funky
-
-Managed agent platforms are great until you need to:
-
-- keep conversation history in your database, under your retention and compliance rules,
-- swap the model or the agent loop itself,
-- or simply not be tied to a single vendor's API.
-
-Funky factors a cloud agent into **four small interfaces**. Implement, or pick, one of each, and you get the managed-agent developer experience on infrastructure you control. No vendor lock-in, maximum flexibility.
-
-## Core concepts
-
-| Concept | Description |
-|---|---|
-| **Agent** | The model, system prompt, tools, and skills. |
-| **Environment** | Configuration for where sessions run: your own sandbox or a sandbox from some vendor. |
-| **Session** | A running agent instance within an environment, performing a specific task and generating outputs. |
-| **Events** | Messages exchanged between your application and the agent (user turns, tool results, status updates). |
-
-## Architecture
-
-<img width="7225" height="3530" alt="Agent and Environment-2026-06-16-030922" src="https://github.com/user-attachments/assets/095048d4-4ce7-432a-93d5-9ad4a2b16097" />
-
-Funky is built from four small interfaces, plus a thin **Client** that wires them together:
-
-- **ConfigRegistry** stores and retrieves agent and environment configs.
-- **SessionStore** creates sessions and appends/reads their event history.
-- **SandboxRuntime** creates, executes in, and destroys sandboxes.
-- **AgentService** runs a single turn of the agent loop against a sandbox.
-- **Client** is the orchestrator developers actually call; it resolves ids → configs and coordinates the four services.
-
-Each is an interface. Funky doesn't care whether your `SandboxRuntime` is backed by Docker, Firecracker, gVisor, or a remote provider, only that it satisfies the contract.
-
-## How it works
-
-1. **Create an agent.** Define the model, system prompt, tools, and skills. Create the agent once and reference it by ID across sessions.
-2. **Create an environment.** Configure where the agent runs: a cloud sandbox, or a self-hosted sandbox on your own infrastructure.
-3. **Start a session.** Launch a session that references your agent and environment configuration.
-4. **Send events and stream responses.** Send user messages as events. The agent autonomously executes tools and streams back results through server-sent events (SSE). Event history is persisted server-side and can be fetched in full.
+> **Status: early development.** The agent config API is functional. Environments, sessions, and the agent runtime are in active development.
 
 ## Quickstart
 
-Run the whole stack locally with [Docker Compose](./docker-compose.yml) — the four
-services, the REST [client](./client/local_python) (`:8000`), and the
-[web UI](./web) (`:5173`).
-
-**1. Set your API key** (each agent turn makes a real, billed Anthropic call):
+Requires Docker.
 
 ```bash
-cp .env.example .env        # then put your ANTHROPIC_API_KEY in it
-```
-
-**2. Start the stack:**
-
-```bash
+git clone https://github.com/funkyhq/funky && cd funky
+cp .env.example .env        # set FUNKY_AUTH_TOKEN to any long random string
 docker compose up --build
 ```
 
-Then interact with it however you like.
-
-**Web UI** — open <http://localhost:5173>, create an agent, and start chatting.
-
-**REST API** — drive the client on `:8000` with `curl`:
+The stack is up when `api` reports listening on port 3000. Try it:
 
 ```bash
-# Create an agent -> {"id":"agt_..."}
-curl -s -X POST http://127.0.0.1:8000/v1/agents \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"coder","model":"claude-sonnet-4-6","system_prompt":"Be brief."}'
+export TOKEN=<your FUNKY_AUTH_TOKEN>
 
-# Create an environment -> {"id":"env_..."}
-curl -s -X POST http://127.0.0.1:8000/v1/environments -d '{}'
+# health
+curl -s localhost:3000/healthz
 
-# Open a session for that agent + environment -> {"id":"ses_..."}
-curl -s -X POST http://127.0.0.1:8000/v1/sessions \
-  -H 'Content-Type: application/json' \
-  -d '{"agent_id":"agt_...","environment_id":"env_..."}'
+# create an agent
+curl -s -X POST localhost:3000/v1/agents \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "content-type: application/json" \
+  -d '{
+    "name": "data cruncher",
+    "system_prompt": "You are a data analyst.",
+    "model": { "provider": "anthropic", "model": "claude-sonnet-5" }
+  }'
 
-# Send a message; runs one agent turn -> {"events":[...]}
-curl -s -X POST http://127.0.0.1:8000/v1/sessions/ses_.../messages \
-  -H 'Content-Type: application/json' -d '{"prompt":"List the files in the repo."}'
+# list agents
+curl -s -H "Authorization: Bearer $TOKEN" localhost:3000/v1/agents
 ```
 
-To stop, `Ctrl-C` then `docker compose down` (add `-v` to also wipe the persisted
-config and session stores). A sandbox left behind by a crash is labelled and
-reapable with `docker rm -f $(docker ps -aq --filter label=funky.sandbox)`.
+Tear down with `docker compose down` (add `-v` to also delete the database).
 
-## Pluggable by design
+## Local development
 
-Every contract is an interface, so each layer is independently swappable. These are *examples of the kinds of backends that fit each contract*, not a list of shipped integrations.
+Requires Node 22+, pnpm, and Docker (for Postgres).
 
-| Contract | Backends that fit the shape |
-|---|---|
-| **SandboxRuntime** | Local Docker, Firecracker, gVisor, Kubernetes Jobs, or a remote sandbox provider |
-| **SessionStore** | In-memory, SQLite, Postgres, Redis, or object storage |
-| **ConfigRegistry** | In-memory, Postgres, file-based, or Git-backed |
-| **AgentService** | An Anthropic/Claude loop, another model provider, a local OSS model, or your own agent loop |
+```bash
+pnpm install
 
-Mix and match: a local Docker sandbox with a Postgres session store and a Claude runtime in development; a Firecracker sandbox with the same store and runtime in production, without changing a line of application code.
+# database
+docker run -d --name funky-pg \
+  -e POSTGRES_USER=funky -e POSTGRES_PASSWORD=funky -e POSTGRES_DB=funky \
+  -p 5432:5432 postgres:16
+pnpm -F @funky/db migrate
+
+# run the API with hot reload
+pnpm dev
+```
+
+Useful commands: `pnpm typecheck` · `pnpm -F @funky/db generate` (new migration after schema changes) · `pnpm -F @funky/db exec drizzle-kit studio` (database browser).
+
+## Layout
+
+```
+apps/api           HTTP API (Hono)
+packages/configs   agent config domain logic
+packages/db        Drizzle schema + migrations
+```
+
+`apps` are deployable processes; `packages` are libraries. Apps depend on packages, never the reverse.
+
+## Roadmap
+
+- [x] Agent configs (versioned, archive-only) — create/update/list/archive + version history
+- [ ] Environment configs
+- [ ] Sessions & event log
+- [ ] Agent runtime worker (the loop)
+- [ ] Sandboxed execution
+- [ ] SDKs (TypeScript, Python)
 
 ## Contributing
 

@@ -1,0 +1,33 @@
+# Dockerfile (repo root) — ONE image for the whole workspace.
+# Today it runs the api; when the worker exists, same image + different command
+# (the "one image, two Deployments" decision, honored from the first build).
+#
+# Honest status: this runs TypeScript via tsx — correct and fine for the compose
+# quickstart. Production hardening (tsc → dist, pruned prod-only deps via
+# `pnpm deploy`, distroless base) is a deliberate later step.
+
+FROM node:22-slim
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable
+
+WORKDIR /app
+
+# Manifests first: dependency layers cache until a package.json/lockfile changes.
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/api/package.json apps/api/
+COPY packages/db/package.json packages/db/
+COPY packages/configs/package.json packages/configs/
+
+RUN pnpm install --frozen-lockfile
+
+# Then the source (see .dockerignore for what stays out).
+COPY . .
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+# Default command = api. Compose overrides this for the migrate one-shot
+# (and later, the worker).
+CMD ["pnpm", "-F", "api", "start:src"]
