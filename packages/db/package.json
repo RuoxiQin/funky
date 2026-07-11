@@ -16,9 +16,10 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@types/pg": "^8.20.0",
-    "drizzle-kit": "^1.0.0-beta.2",
     "dotenv": "^17.2.0",
+    "drizzle-kit": "^1.0.0-beta.2",
     "tsx": "^4.7.1"
   }
 }
