@@ -4,9 +4,8 @@
 // so a rename, a dropped NOT NULL, a changed default, or a broken PK/FK/index
 // fails here loudly instead of silently drifting from migrations/.
 
-import assert from "node:assert/strict";
-import { test } from "node:test";
 import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
+import { describe, expect, it } from "vitest";
 import { agentConfigs, agentConfigVersions, type ModelConfig } from "./schema";
 
 type ColSpec = {
@@ -24,24 +23,22 @@ function columnsByName(table: PgTable) {
 /** Assert the table has exactly `expected`'s columns, each with the given shape. */
 function assertColumns(table: PgTable, expected: Record<string, ColSpec>) {
   const cols = columnsByName(table);
-  assert.deepEqual(
-    [...cols.keys()].sort(),
+  expect([...cols.keys()].sort(), "column set drifted (added/removed column)").toEqual(
     Object.keys(expected).sort(),
-    "column set drifted (added/removed column)",
   );
   for (const [name, spec] of Object.entries(expected)) {
     const col = cols.get(name);
-    assert.ok(col, `missing column ${name}`);
-    assert.equal(col.getSQLType(), spec.type, `${name}.type`);
-    assert.equal(col.notNull, spec.notNull, `${name}.notNull`);
+    expect(col, `missing column ${name}`).toBeDefined();
+    expect(col!.getSQLType(), `${name}.type`).toBe(spec.type);
+    expect(col!.notNull, `${name}.notNull`).toBe(spec.notNull);
     if (spec.hasDefault !== undefined) {
-      assert.equal(col.hasDefault, spec.hasDefault, `${name}.hasDefault`);
+      expect(col!.hasDefault, `${name}.hasDefault`).toBe(spec.hasDefault);
     }
     if (spec.default !== undefined) {
-      assert.deepEqual(col.default, spec.default, `${name}.default`);
+      expect(col!.default, `${name}.default`).toEqual(spec.default);
     }
     if (spec.primary !== undefined) {
-      assert.equal(col.primary, spec.primary, `${name}.primary`);
+      expect(col!.primary, `${name}.primary`).toBe(spec.primary);
     }
   }
 }
@@ -58,90 +55,93 @@ function indexSummaries(table: PgTable) {
 
 // ---------------------------------------------------------------- agent_configs
 
-test("agent_configs: table name", () => {
-  assert.equal(getTableConfig(agentConfigs).name, "agent_configs");
-});
-
-test("agent_configs: columns match the migration", () => {
-  assertColumns(agentConfigs, {
-    id: { type: "uuid", notNull: true, primary: true },
-    namespace: { type: "text", notNull: true },
-    name: { type: "text", notNull: true },
-    description: { type: "text", notNull: false },
-    metadata: { type: "jsonb", notNull: true, hasDefault: true, default: {} },
-    latest_version: { type: "integer", notNull: true, hasDefault: true, default: 1 },
-    created_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
-    updated_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
-    archived_at: { type: "timestamp with time zone", notNull: false },
+describe("agent_configs", () => {
+  it("has the expected table name", () => {
+    expect(getTableConfig(agentConfigs).name).toBe("agent_configs");
   });
-});
 
-test("agent_configs: id is an inline primary key (no composite PK, no FKs)", () => {
-  const cfg = getTableConfig(agentConfigs);
-  assert.equal(cfg.primaryKeys.length, 0, "identity uses an inline PK, not a composite one");
-  assert.equal(cfg.foreignKeys.length, 0, "identity table references nothing");
-});
+  it("columns match the migration", () => {
+    assertColumns(agentConfigs, {
+      id: { type: "uuid", notNull: true, primary: true },
+      namespace: { type: "text", notNull: true },
+      name: { type: "text", notNull: true },
+      description: { type: "text", notNull: false },
+      metadata: { type: "jsonb", notNull: true, hasDefault: true, default: {} },
+      latest_version: { type: "integer", notNull: true, hasDefault: true, default: 1 },
+      created_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
+      updated_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
+      archived_at: { type: "timestamp with time zone", notNull: false },
+    });
+  });
 
-test("agent_configs: has the two namespace lookup indexes, both non-unique", () => {
-  // name is a display label, not a reference — the (namespace, name) index must
-  // stay non-unique so duplicate names within a namespace are allowed.
-  assert.deepEqual(indexSummaries(agentConfigs), [
-    { name: "agent_configs_ns", columns: ["namespace"], unique: false },
-    { name: "agent_configs_ns_name", columns: ["namespace", "name"], unique: false },
-  ]);
+  it("uses an inline primary key on id (no composite PK, no FKs)", () => {
+    const cfg = getTableConfig(agentConfigs);
+    expect(cfg.primaryKeys, "identity uses an inline PK, not a composite one").toHaveLength(0);
+    expect(cfg.foreignKeys, "identity table references nothing").toHaveLength(0);
+  });
+
+  it("has the two namespace lookup indexes, both non-unique", () => {
+    // name is a display label, not a reference — the (namespace, name) index must
+    // stay non-unique so duplicate names within a namespace are allowed.
+    expect(indexSummaries(agentConfigs)).toEqual([
+      { name: "agent_configs_ns", columns: ["namespace"], unique: false },
+      { name: "agent_configs_ns_name", columns: ["namespace", "name"], unique: false },
+    ]);
+  });
 });
 
 // -------------------------------------------------------- agent_config_versions
 
-test("agent_config_versions: table name", () => {
-  assert.equal(getTableConfig(agentConfigVersions).name, "agent_config_versions");
-});
-
-test("agent_config_versions: columns match the migration", () => {
-  assertColumns(agentConfigVersions, {
-    agent_config_id: { type: "uuid", notNull: true },
-    version: { type: "integer", notNull: true },
-    namespace: { type: "text", notNull: true },
-    system_prompt: { type: "text", notNull: true },
-    model: { type: "jsonb", notNull: true },
-    tool_policy: { type: "jsonb", notNull: true, hasDefault: true, default: {} },
-    created_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
-    created_by: { type: "text", notNull: false },
+describe("agent_config_versions", () => {
+  it("has the expected table name", () => {
+    expect(getTableConfig(agentConfigVersions).name).toBe("agent_config_versions");
   });
-});
 
-test("agent_config_versions: composite primary key is (agent_config_id, version)", () => {
-  const pks = getTableConfig(agentConfigVersions).primaryKeys;
-  assert.equal(pks.length, 1);
-  assert.deepEqual(
-    pks[0]?.columns.map((c) => c.name),
-    ["agent_config_id", "version"],
-  );
-});
+  it("columns match the migration", () => {
+    assertColumns(agentConfigVersions, {
+      agent_config_id: { type: "uuid", notNull: true },
+      version: { type: "integer", notNull: true },
+      namespace: { type: "text", notNull: true },
+      system_prompt: { type: "text", notNull: true },
+      model: { type: "jsonb", notNull: true },
+      tool_policy: { type: "jsonb", notNull: true, hasDefault: true, default: {} },
+      created_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
+      created_by: { type: "text", notNull: false },
+    });
+  });
 
-test("agent_config_versions: agent_config_id references agent_configs.id", () => {
-  const fks = getTableConfig(agentConfigVersions).foreignKeys;
-  assert.equal(fks.length, 1, "exactly one foreign key");
-  const ref = fks[0]!.reference();
-  assert.deepEqual(ref.columns.map((c) => c.name), ["agent_config_id"]);
-  assert.deepEqual(ref.foreignColumns.map((c) => c.name), ["id"]);
-  assert.equal(getTableConfig(ref.foreignTable).name, "agent_configs");
+  it("has the composite primary key (agent_config_id, version)", () => {
+    const pks = getTableConfig(agentConfigVersions).primaryKeys;
+    expect(pks).toHaveLength(1);
+    expect(pks[0]?.columns.map((c) => c.name)).toEqual(["agent_config_id", "version"]);
+  });
+
+  it("references agent_configs.id via agent_config_id", () => {
+    const fks = getTableConfig(agentConfigVersions).foreignKeys;
+    expect(fks, "exactly one foreign key").toHaveLength(1);
+    const ref = fks[0]!.reference();
+    expect(ref.columns.map((c) => c.name)).toEqual(["agent_config_id"]);
+    expect(ref.foreignColumns.map((c) => c.name)).toEqual(["id"]);
+    expect(getTableConfig(ref.foreignTable).name).toBe("agent_configs");
+  });
 });
 
 // ------------------------------------------------------------------ ModelConfig
 
-test("ModelConfig: provider is constrained to the supported union", () => {
-  const model: ModelConfig = {
-    provider: "anthropic",
-    model: "claude-sonnet-5",
-    maxTokens: 1024,
-    temperature: 0.7,
-  };
-  assert.equal(model.provider, "anthropic");
+describe("ModelConfig", () => {
+  it("constrains provider to the supported union", () => {
+    const model: ModelConfig = {
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      maxTokens: 1024,
+      temperature: 0.7,
+    };
+    expect(model.provider).toBe("anthropic");
 
-  // Compile-time guard: an unsupported provider must not type-check. tsx strips
-  // types at runtime, so this line is inert then; `tsc --noEmit` enforces it.
-  // @ts-expect-error "cohere" is not a member of the provider union
-  const unsupported: ModelConfig = { provider: "cohere", model: "x" };
-  void unsupported;
+    // Compile-time guard: an unsupported provider must not type-check. Types are
+    // stripped at runtime, so this line is inert then; `tsc --noEmit` enforces it.
+    // @ts-expect-error "cohere" is not a member of the provider union
+    const unsupported: ModelConfig = { provider: "cohere", model: "x" };
+    void unsupported;
+  });
 });
