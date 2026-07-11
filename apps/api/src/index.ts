@@ -3,7 +3,7 @@ import "dotenv/config"; // dev convenience; production containers inject env dir
 import { serve } from "@hono/node-server";
 import { Pool } from "pg";
 import { createDb } from "@funky/db";
-import { AgentsService } from "@funky/configs";
+import { AgentsService, EnvsService } from "@funky/configs";
 import { buildApp } from "./app";
 import { loadConfig } from "./config";
 import { config } from "dotenv";
@@ -24,6 +24,7 @@ const db = createDb(pool);
 
 const app = buildApp({
   agents: new AgentsService(db),
+  envs: new EnvsService(db),
   authToken: cfg.authToken,
   ping: () => pool.query("SELECT 1"),
 });

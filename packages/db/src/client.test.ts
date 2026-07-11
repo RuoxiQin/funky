@@ -5,7 +5,7 @@
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { createDb, tables, type Db } from "./client";
-import { agentConfigs, agentConfigVersions } from "./schema";
+import { agentConfigs, agentConfigVersions, envConfigs } from "./schema";
 
 const DUMMY_URL = "postgres://user:pass@localhost:5432/funky_test";
 
@@ -32,6 +32,9 @@ describe("createDb", () => {
 
       const versions = db.select().from(agentConfigVersions).toSQL();
       expect(versions.sql).toMatch(/from "agent_config_versions"/);
+
+      const envs = db.select().from(envConfigs).toSQL();
+      expect(envs.sql).toMatch(/from "env_configs"/);
     } finally {
       await pool.end();
     }
@@ -39,9 +42,12 @@ describe("createDb", () => {
 });
 
 describe("tables", () => {
-  it("re-exports both schema tables by their identifiers", () => {
+  it("re-exports all schema tables by their identifiers", () => {
     expect(tables.agentConfigs).toBe(agentConfigs);
     expect(tables.agentConfigVersions).toBe(agentConfigVersions);
-    expect(Object.keys(tables).sort()).toEqual(["agentConfigVersions", "agentConfigs"].sort());
+    expect(tables.envConfigs).toBe(envConfigs);
+    expect(Object.keys(tables).sort()).toEqual(
+      ["agentConfigVersions", "agentConfigs", "envConfigs"].sort(),
+    );
   });
 });

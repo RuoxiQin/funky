@@ -6,7 +6,7 @@
 
 import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
-import { agentConfigs, agentConfigVersions, type ModelConfig } from "./schema";
+import { agentConfigs, agentConfigVersions, envConfigs, type ModelConfig } from "./schema";
 
 type ColSpec = {
   type: string; // getSQLType() output, e.g. "uuid", "timestamp with time zone"
@@ -123,6 +123,45 @@ describe("agent_config_versions", () => {
     expect(ref.columns.map((c) => c.name)).toEqual(["agent_config_id"]);
     expect(ref.foreignColumns.map((c) => c.name)).toEqual(["id"]);
     expect(getTableConfig(ref.foreignTable).name).toBe("agent_configs");
+  });
+});
+
+// ----------------------------------------------------------------- env_configs
+
+describe("env_configs", () => {
+  it("has the expected table name", () => {
+    expect(getTableConfig(envConfigs).name).toBe("env_configs");
+  });
+
+  it("columns match the migration", () => {
+    assertColumns(envConfigs, {
+      id: { type: "uuid", notNull: true, primary: true },
+      namespace: { type: "text", notNull: true },
+      name: { type: "text", notNull: true },
+      description: { type: "text", notNull: false },
+      metadata: { type: "jsonb", notNull: true, hasDefault: true, default: {} },
+      base_image: { type: "text", notNull: true },
+      persistent_fs: { type: "jsonb", notNull: true, hasDefault: true, default: { size_gb: 2 } },
+      egress: { type: "jsonb", notNull: true, hasDefault: true, default: { allow: [] } },
+      created_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
+      updated_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
+      archived_at: { type: "timestamp with time zone", notNull: false },
+    });
+  });
+
+  it("uses an inline primary key on id (no composite PK, no FKs)", () => {
+    const cfg = getTableConfig(envConfigs);
+    expect(cfg.primaryKeys, "envs use an inline PK, not a composite one").toHaveLength(0);
+    expect(cfg.foreignKeys, "env table references nothing (yet — sessions later)").toHaveLength(0);
+  });
+
+  it("has the two namespace lookup indexes, both non-unique", () => {
+    // name is a display label, not a reference — the (namespace, name) index must
+    // stay non-unique so duplicate names within a namespace are allowed.
+    expect(indexSummaries(envConfigs)).toEqual([
+      { name: "env_configs_ns", columns: ["namespace"], unique: false },
+      { name: "env_configs_ns_name", columns: ["namespace", "name"], unique: false },
+    ]);
   });
 });
 

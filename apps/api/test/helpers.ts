@@ -2,7 +2,13 @@
 // The whole app is exercised network-free via buildApp(deps) + app.request(),
 // exactly as app.ts advertises. No database, no HTTP server.
 import { vi, type Mock } from "vitest";
-import type { Agent, AgentsService, AgentVersion, AuthContext } from "@funky/configs";
+import type {
+  Agent,
+  AgentsService,
+  AgentVersion,
+  AuthContext,
+  EnvsService,
+} from "@funky/configs";
 import { buildApp } from "../src/app";
 
 /** What the static auth middleware injects for every /v1 request. */
@@ -40,6 +46,33 @@ function makeFakeAgents(overrides: Partial<FakeAgents> = {}): {
   return { service: fake as unknown as AgentsService, fake };
 }
 
+/** Every EnvsService method, replaced by a spy the tests can program/inspect. */
+export type FakeEnvs = {
+  create: Mock;
+  list: Mock;
+  get: Mock;
+  update: Mock;
+  archive: Mock;
+  delete: Mock;
+};
+
+function makeFakeEnvs(overrides: Partial<FakeEnvs> = {}): {
+  service: EnvsService;
+  fake: FakeEnvs;
+} {
+  const fake: FakeEnvs = {
+    create: vi.fn(),
+    list: vi.fn(),
+    get: vi.fn(),
+    update: vi.fn(),
+    archive: vi.fn(),
+    delete: vi.fn(),
+    ...overrides,
+  };
+  // EnvsService has a private field, so a structural cast is required for the double.
+  return { service: fake as unknown as EnvsService, fake };
+}
+
 export type App = ReturnType<typeof buildApp>;
 
 /** Build the app with sensible test defaults (auth off, ping ok) and a programmable service. */
@@ -48,15 +81,18 @@ export function makeApp(
     authToken?: string | null;
     ping?: () => Promise<unknown>;
     agents?: Partial<FakeAgents>;
+    envs?: Partial<FakeEnvs>;
   } = {},
-): { app: App; fake: FakeAgents } {
+): { app: App; fake: FakeAgents; fakeEnvs: FakeEnvs } {
   const { service, fake } = makeFakeAgents(opts.agents);
+  const { service: envsService, fake: fakeEnvs } = makeFakeEnvs(opts.envs);
   const app = buildApp({
     agents: service,
+    envs: envsService,
     authToken: opts.authToken ?? null, // auth disabled by default; auth tests opt in
     ping: opts.ping ?? (async () => ({ rows: [{ "?column?": 1 }] })),
   });
-  return { app, fake };
+  return { app, fake, fakeEnvs };
 }
 
 // --------------------------------------------------------------- request helpers

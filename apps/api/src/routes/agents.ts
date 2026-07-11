@@ -1,10 +1,10 @@
 // apps/api/src/routes/agents.ts
 // Thin: validate shapes → call service → status code. No Drizzle imports here, ever.
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { z, ZodType } from "zod";
+import { z } from "zod";
 import type { AgentsService, AuthContext } from "@funky/configs";
 import { errorResponse } from "../http";
+import { listQuerySchema, metadataSchema, validate } from "./common";
 
 type Env = { Variables: { auth: AuthContext; requestId: string } };
 
@@ -28,11 +28,6 @@ const modelSchema = z
   })
   .strict();
 
-// zod v4: record takes explicit key + value schemas (key length enforced there)
-const metadataSchema = z
-  .record(z.string().max(64), z.string().max(512))
-  .refine((m) => Object.keys(m).length <= 16, "metadata: at most 16 pairs");
-
 const createSchema = z
   .object({
     id: z.uuid().optional(),
@@ -51,29 +46,10 @@ const updateSchema = createSchema
   .strict()
   .refine((o) => Object.keys(o).length > 0, "at least one field is required");
 
-const listQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  after_id: z.uuid().optional(),
-  include_archived: z
-    .enum(["true", "false"])
-    .default("false")
-    .transform((v) => v === "true"),
-});
-
 const versionsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   after_version: z.coerce.number().int().min(1).optional(),
 });
-
-const validate = <T extends ZodType>(target: "json" | "query", schema: T) =>
-  zValidator(target, schema, (result, c) => {
-    if (!result.success) {
-      const msg = result.error.issues
-        .map((i) => `${i.path.map(String).join(".") || "body"}: ${i.message}`)
-        .join("; ");
-      return errorResponse(c, 400, "invalid_request_error", msg);
-    }
-  });
 
 // ---------------------------------------------------------------- routes
 
