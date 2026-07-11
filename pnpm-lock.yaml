@@ -57,6 +57,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@22.20.1)(vite@8.1.4(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.0))
 
   packages/configs:
     dependencies:
@@ -98,6 +101,9 @@ importers:
       drizzle-kit:
         specifier: ^1.0.0-beta.2
         version: 1.0.0-rc.4-ca0f029
+      tsx:
+        specifier: ^4.7.1
+        version: 4.23.0
 
 packages:
 

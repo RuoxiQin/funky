@@ -6,7 +6,7 @@
     "scripts": {
       "preinstall": "npx only-allow pnpm",
       "typecheck": "tsc --noEmit",
-      "test": "pnpm -r test",
+      "test": "pnpm -r --if-present test",
       "dev": "pnpm -F api dev"
     },
     "devDependencies": {
