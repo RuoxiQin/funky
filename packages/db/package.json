@@ -9,16 +9,18 @@
   "scripts": {
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "drizzle-orm": "^1.0.0-beta.2",
     "pg": "^8.22.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@types/pg": "^8.20.0",
-    "drizzle-kit": "^1.0.0-beta.2",
     "dotenv": "^17.2.0",
-    "tsx": "^4.7.1"
+    "drizzle-kit": "^1.0.0-beta.2",
+    "vitest": "^4.1.10"
   }
 }

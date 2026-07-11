@@ -20,10 +20,8 @@ function sortKeys(x: unknown): unknown {
 
 /** Postgres unique_violation (two same-id creates raced; loser hits the PK). */
 export function isUniqueViolation(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code?: string }).code === "23505"
-  );
+  if (typeof err !== "object" || err === null) return false;
+  if ((err as { code?: unknown }).code === "23505") return true;
+  // drizzle v1 wraps driver errors (DrizzleQueryError) with the pg error as `cause`
+  return isUniqueViolation((err as { cause?: unknown }).cause);
 }
