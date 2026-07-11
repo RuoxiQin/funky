@@ -2,7 +2,7 @@
 
 Spin up agent swarms on demand. Define an agent (system prompt + model), give it a sandboxed environment, send it work — Funky handles the durability and the infrastructure.
 
-> **Status: early development.** The agent config API is functional. Environments, sessions, and the agent runtime are in active development.
+> **Status: early development.** The agent and environment config APIs are functional. Sessions and the agent runtime are in active development.
 
 ## Quickstart
 
@@ -34,6 +34,19 @@ curl -s -X POST localhost:3000/v1/agents \
 
 # list agents
 curl -s -H "Authorization: Bearer $TOKEN" localhost:3000/v1/agents
+
+# create an environment (the sandbox recipe for future sessions)
+curl -s -X POST localhost:3000/v1/environments \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "content-type: application/json" \
+  -d '{
+    "name": "python basic",
+    "base_image": "funky/base-python:3.12",
+    "egress": { "allow": ["pypi.org", "files.pythonhosted.org"] }
+  }'
+
+# list environments
+curl -s -H "Authorization: Bearer $TOKEN" localhost:3000/v1/environments
 ```
 
 Tear down with `docker compose down` (add `-v` to also delete the database).
@@ -61,7 +74,7 @@ Useful commands: `pnpm typecheck` · `pnpm -F @funky/db generate` (new migration
 
 ```
 apps/api           HTTP API (Hono)
-packages/configs   agent config domain logic
+packages/configs   agent + environment config domain logic
 packages/db        Drizzle schema + migrations
 ```
 
@@ -70,7 +83,7 @@ packages/db        Drizzle schema + migrations
 ## Roadmap
 
 - [x] Agent configs (versioned, archive-only) — create/update/list/archive + version history
-- [ ] Environment configs
+- [x] Environment configs (unversioned, archive or delete) — the sandbox recipe: base image, persistent fs, egress policy
 - [ ] Sessions & event log
 - [ ] Agent runtime worker (the loop)
 - [ ] Sandboxed execution

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Pool } from "pg";
 import { createDb, tables, type Db } from "./client";
-import { agentConfigs, agentConfigVersions } from "./schema";
+import { agentConfigs, agentConfigVersions, envConfigs } from "./schema";
 
 const DUMMY_URL = "postgres://user:pass@localhost:5432/funky_test";
 
@@ -32,13 +32,20 @@ test("the query builder renders schema tables into SQL", async () => {
 
     const versions = db.select().from(agentConfigVersions).toSQL();
     assert.match(versions.sql, /from "agent_config_versions"/);
+
+    const envs = db.select().from(envConfigs).toSQL();
+    assert.match(envs.sql, /from "env_configs"/);
   } finally {
     await pool.end();
   }
 });
 
-test("`tables` re-exports both schema tables by their identifiers", () => {
+test("`tables` re-exports all schema tables by their identifiers", () => {
   assert.equal(tables.agentConfigs, agentConfigs);
   assert.equal(tables.agentConfigVersions, agentConfigVersions);
-  assert.deepEqual(Object.keys(tables).sort(), ["agentConfigVersions", "agentConfigs"].sort());
+  assert.equal(tables.envConfigs, envConfigs);
+  assert.deepEqual(
+    Object.keys(tables).sort(),
+    ["agentConfigVersions", "agentConfigs", "envConfigs"].sort(),
+  );
 });

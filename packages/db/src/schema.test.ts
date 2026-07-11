@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
-import { agentConfigs, agentConfigVersions, type ModelConfig } from "./schema";
+import { agentConfigs, agentConfigVersions, envConfigs, type ModelConfig } from "./schema";
 
 type ColSpec = {
   type: string; // getSQLType() output, e.g. "uuid", "timestamp with time zone"
@@ -126,6 +126,43 @@ test("agent_config_versions: agent_config_id references agent_configs.id", () =>
   assert.deepEqual(ref.columns.map((c) => c.name), ["agent_config_id"]);
   assert.deepEqual(ref.foreignColumns.map((c) => c.name), ["id"]);
   assert.equal(getTableConfig(ref.foreignTable).name, "agent_configs");
+});
+
+// ----------------------------------------------------------------- env_configs
+
+test("env_configs: table name", () => {
+  assert.equal(getTableConfig(envConfigs).name, "env_configs");
+});
+
+test("env_configs: columns match the migration", () => {
+  assertColumns(envConfigs, {
+    id: { type: "uuid", notNull: true, primary: true },
+    namespace: { type: "text", notNull: true },
+    name: { type: "text", notNull: true },
+    description: { type: "text", notNull: false },
+    metadata: { type: "jsonb", notNull: true, hasDefault: true, default: {} },
+    base_image: { type: "text", notNull: true },
+    persistent_fs: { type: "jsonb", notNull: true, hasDefault: true, default: { size_gb: 2 } },
+    egress: { type: "jsonb", notNull: true, hasDefault: true, default: { allow: [] } },
+    created_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
+    updated_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
+    archived_at: { type: "timestamp with time zone", notNull: false },
+  });
+});
+
+test("env_configs: id is an inline primary key (no composite PK, no FKs)", () => {
+  const cfg = getTableConfig(envConfigs);
+  assert.equal(cfg.primaryKeys.length, 0, "envs use an inline PK, not a composite one");
+  assert.equal(cfg.foreignKeys.length, 0, "env table references nothing (yet — sessions later)");
+});
+
+test("env_configs: has the two namespace lookup indexes, both non-unique", () => {
+  // name is a display label, not a reference — the (namespace, name) index must
+  // stay non-unique so duplicate names within a namespace are allowed.
+  assert.deepEqual(indexSummaries(envConfigs), [
+    { name: "env_configs_ns", columns: ["namespace"], unique: false },
+    { name: "env_configs_ns_name", columns: ["namespace", "name"], unique: false },
+  ]);
 });
 
 // ------------------------------------------------------------------ ModelConfig
