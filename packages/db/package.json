@@ -9,7 +9,8 @@
   "scripts": {
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "drizzle-orm": "^1.0.0-beta.2",
@@ -20,6 +21,6 @@
     "@types/pg": "^8.20.0",
     "dotenv": "^17.2.0",
     "drizzle-kit": "^1.0.0-beta.2",
-    "tsx": "^4.7.1"
+    "vitest": "^4.1.10"
   }
 }
