@@ -9,7 +9,14 @@ import type {
   AuthContext,
   EnvsService,
 } from "@funky/configs";
+import type {
+  ApiSessionEvent,
+  EventStore,
+  Session,
+  SessionsService,
+} from "@funky/sessions";
 import { buildApp } from "../src/app";
+import type { EventBus } from "../src/sse";
 
 /** What the static auth middleware injects for every /v1 request. */
 export const CTX: AuthContext = { namespace: "default", principal: "token:default" };
@@ -73,26 +80,59 @@ function makeFakeEnvs(overrides: Partial<FakeEnvs> = {}): {
   return { service: fake as unknown as EnvsService, fake };
 }
 
+/** Every SessionsService method used by the routes, replaced by a spy. */
+export type FakeSessions = {
+  create: Mock;
+  list: Mock;
+  get: Mock;
+  archive: Mock;
+  sendMessage: Mock;
+  getEvents: Mock;
+};
+
+function makeFakeSessions(overrides: Partial<FakeSessions> = {}): {
+  service: SessionsService;
+  fake: FakeSessions;
+} {
+  const fake: FakeSessions = {
+    create: vi.fn(),
+    list: vi.fn(),
+    get: vi.fn(),
+    archive: vi.fn(),
+    sendMessage: vi.fn(),
+    getEvents: vi.fn(),
+    ...overrides,
+  };
+  return { service: fake as unknown as SessionsService, fake };
+}
+
 export type App = ReturnType<typeof buildApp>;
 
-/** Build the app with sensible test defaults (auth off, ping ok) and a programmable service. */
+/** Build the app with sensible test defaults (auth off, ping ok) and programmable services.
+ *  The sessions store/bus are inert stubs — the unit route tests never hit the SSE path
+ *  (that is covered against a real Postgres in sse.test.ts). */
 export function makeApp(
   opts: {
     authToken?: string | null;
     ping?: () => Promise<unknown>;
     agents?: Partial<FakeAgents>;
     envs?: Partial<FakeEnvs>;
+    sessions?: Partial<FakeSessions>;
   } = {},
-): { app: App; fake: FakeAgents; fakeEnvs: FakeEnvs } {
+): { app: App; fake: FakeAgents; fakeEnvs: FakeEnvs; fakeSessions: FakeSessions } {
   const { service, fake } = makeFakeAgents(opts.agents);
   const { service: envsService, fake: fakeEnvs } = makeFakeEnvs(opts.envs);
+  const { service: sessionsService, fake: fakeSessions } = makeFakeSessions(opts.sessions);
   const app = buildApp({
     agents: service,
     envs: envsService,
+    sessions: sessionsService,
+    store: {} as unknown as EventStore,
+    bus: {} as unknown as EventBus,
     authToken: opts.authToken ?? null, // auth disabled by default; auth tests opt in
     ping: opts.ping ?? (async () => ({ rows: [{ "?column?": 1 }] })),
   });
-  return { app, fake, fakeEnvs };
+  return { app, fake, fakeEnvs, fakeSessions };
 }
 
 // --------------------------------------------------------------- request helpers
@@ -161,3 +201,44 @@ export function createBody(over: Record<string, unknown> = {}): Record<string, u
 /** uuid v7 shape — used to assert the request-id header/envelope value. */
 export const UUID_V7 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// ------------------------------------------------------------- session fixtures
+
+export const SESSION_ID = "0193a1b2-3c4d-7e5f-8a90-1b2c3d4e5f60";
+export const ENV_ID = "0193b2c3-4d5e-7f60-8a91-2c3d4e5f6071";
+
+export function sessionFixture(over: Partial<Session> = {}): Session {
+  return {
+    type: "session",
+    id: SESSION_ID,
+    status: "provisioning",
+    agent: { id: AGENT_ID, version: 1 },
+    environment_id: ENV_ID,
+    title: null,
+    metadata: {},
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+    archived_at: null,
+    ...over,
+  };
+}
+
+export function eventFixture(over: Partial<ApiSessionEvent> = {}): ApiSessionEvent {
+  return {
+    type: "user_message",
+    seq: 1,
+    session_id: SESSION_ID,
+    created_at: "2026-01-01T00:00:00.000Z",
+    payload: { content: [{ type: "text", text: "hi" }] },
+    ...over,
+  };
+}
+
+/** A minimal valid create body; override/extend fields per test. */
+export function createSessionBody(over: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    agent: AGENT_ID,
+    environment_id: ENV_ID,
+    ...over,
+  };
+}

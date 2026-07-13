@@ -11,3 +11,12 @@ export type { Job } from "./queue";
 export { nextAction, type Action } from "./reducer";
 export { buildContext, runTurn, type TurnDeps, type TurnOutcome } from "./turn";
 export { runProvision } from "./provision";
+// Phase F: the sessions resource (SessionsService) + the API/SSE event mapper.
+export { SessionsService, toApiEvent } from "./service";
+export type {
+  AgentRef,
+  ApiSessionEvent,
+  CreateSessionInput,
+  Session,
+  SessionPage,
+} from "./service";

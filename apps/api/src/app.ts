@@ -2,15 +2,23 @@
 // The whole application, network-free. Tests: buildApp(deps) + app.request().
 import { Hono } from "hono";
 import type { AgentsService, AuthContext, EnvsService } from "@funky/configs";
+import type { EventStore, SessionsService } from "@funky/sessions";
 import { errorHandler, errorResponse } from "./http";
 import { auth } from "./middleware/auth";
 import { requestId } from "./middleware/request-id";
 import { agentRoutes } from "./routes/agents";
 import { envRoutes } from "./routes/environments";
+import { sessionRoutes } from "./routes/sessions";
+import type { EventBus } from "./sse";
 
 export type AppDeps = {
   agents: AgentsService;
   envs: EnvsService;
+  sessions: SessionsService;
+  /** the append-only event log — the SSE stream re-reads from it on every wake */
+  store: EventStore;
+  /** the in-process LISTEN fan-out that wakes open SSE streams */
+  bus: EventBus;
   /** null = auth disabled (dev only) */
   authToken: string | null;
   /** liveness of the DB, e.g. () => pool.query("SELECT 1") */
@@ -33,6 +41,10 @@ export function buildApp(deps: AppDeps) {
   app.use("/v1/*", auth(deps.authToken));
   app.route("/v1/agents", agentRoutes(deps.agents));
   app.route("/v1/environments", envRoutes(deps.envs));
+  app.route(
+    "/v1/sessions",
+    sessionRoutes({ sessions: deps.sessions, store: deps.store, bus: deps.bus }),
+  );
 
   app.notFound((c) => errorResponse(c, 404, "not_found_error", "unknown route"));
   app.onError(errorHandler);
