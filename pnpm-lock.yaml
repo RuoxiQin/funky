@@ -105,6 +105,19 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(vite@8.1.4(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.0))
 
+  packages/ports/sandbox:
+    dependencies:
+      '@funky/db':
+        specifier: workspace:*
+        version: link:../../db
+      '@funky/sessions':
+        specifier: workspace:*
+        version: link:../../sessions
+    devDependencies:
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@22.20.1)(vite@8.1.4(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.0))
+
   packages/sessions:
     dependencies:
       '@funky/db':
