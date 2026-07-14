@@ -2,7 +2,7 @@
 
 Spin up agent swarms on demand. Define an agent (system prompt + model), give it a sandboxed environment, send it work — Funky handles the durability and the infrastructure.
 
-> **Status: early development.** You can run an agent end-to-end today — no API key required. The sandbox has no isolation yet (see the roadmap).
+> **Status: early development.** You can run an agent end-to-end today — no API key required. The default dev sandbox has no isolation; add an E2B key for isolated per-session cloud sandboxes (see "Using a real sandbox").
 
 ## Quickstart
 
@@ -65,14 +65,13 @@ log, performs the single next step, and appends the result in one conditional-ap
 transaction. The durable record of what happened lives in the database, so a worker is a
 stateless, replaceable unit.
 
-> **Honest limit — the `subprocess` driver.** The dev sandbox runs commands **inside the
-> worker container** (no isolation — see the roadmap), so the sandbox filesystem and any
-> in-flight command are *not* durable: they live and die with that container. The headline
-> demo — kill a worker mid-command and have a replacement **re-attach to the still-running
-> command** and finish the turn — needs a sandbox that outlives the worker. That contract
-> (idempotent `exec` keyed so a command never runs twice, whatever the driver) is already
-> in the sandbox port and its conformance suite; the live demo lands with the persistent
-> provider driver (E2B via ComputeSDK), next.
+> **Honest limit — the default `subprocess` driver.** The dev sandbox runs commands
+> **inside the worker container** (no isolation), so the sandbox filesystem and any
+> in-flight command are *not* durable: they live and die with that container. The E2B
+> driver (next section) removes this limit: the sandbox outlives any single worker, a
+> running command records its output and exit code inside the sandbox itself, and the
+> idempotent `exec` contract (a command never runs twice, whatever the driver) lets a
+> replacement worker re-attach to work a dead worker started and finish the turn.
 
 ### Using a real model
 
@@ -85,6 +84,29 @@ ANTHROPIC_API_KEY=sk-ant-...
 docker compose up -d --build worker
 ```
 Now the same curl commands drive a real Claude, writing and running its own shell commands.
+
+### Using a real sandbox
+
+```bash
+# in .env
+FUNKY_SANDBOX=e2b
+E2B_API_KEY=e2b_...         # from https://e2b.dev
+```
+```bash
+docker compose up -d --build worker
+```
+Now every session provisions an isolated [E2B](https://e2b.dev) sandbox, through
+[ComputeSDK](https://computesdk.com) so further providers can slot in behind the same
+driver. The sandbox — not the worker — holds each command's output and exit code, which is
+what makes sessions survive worker death: a replacement worker re-attaches by idempotency
+key and reads the same files. Idle sandboxes pause after 30 minutes
+(`FUNKY_E2B_SANDBOX_TIMEOUT_MS`) and resume on the next command, filesystem intact.
+
+The E2B driver answers to the identical conformance suite as the subprocess driver; it
+runs against real sandboxes when a key is present:
+```bash
+E2B_API_KEY=e2b_... pnpm -F @funky/sandbox test
+```
 
 ### Tear down
 
@@ -131,7 +153,7 @@ packages/db        Drizzle schema + migrations
 - [x] Environment configs (unversioned, archive or delete) — the sandbox recipe: base image, persistent fs, egress policy
 - [x] Sessions & event log
 - [x] Agent runtime worker (the loop)
-- [x] Sandboxed execution — subprocess driver: **no isolation yet** (commands run inside the worker container); provider drivers (E2B via ComputeSDK) next
+- [x] Sandboxed execution — subprocess driver (dev default: commands run inside the worker container, no isolation) + E2B driver via ComputeSDK (isolated sandbox per session, outlives any worker)
 - [ ] SDKs (TypeScript, Python)
 
 ## Contributing

@@ -12,8 +12,10 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@computesdk/e2b": "^1.7.51",
     "@funky/db": "workspace:*",
-    "@funky/sessions": "workspace:*"
+    "@funky/sessions": "workspace:*",
+    "computesdk": "^4.1.3"
   },
   "devDependencies": {
     "vitest": "^4.1.10"

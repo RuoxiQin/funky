@@ -28,8 +28,17 @@ describe("loadConfig — valid input", () => {
       llm: "fake",
       sandbox: "subprocess",
       anthropicApiKey: null,
+      e2bApiKey: null,
+      e2bSandboxTimeoutMs: 30 * 60_000,
       dbPoolMax: 10,
     });
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  it("treats empty-string secrets as absent (compose `${VAR:-}` sends '' for unset keys)", () => {
+    const cfg = loadConfig({ ...BASE, ANTHROPIC_API_KEY: "", E2B_API_KEY: "" });
+    expect(cfg.anthropicApiKey).toBeNull();
+    expect(cfg.e2bApiKey).toBeNull();
     expect(exitSpy).not.toHaveBeenCalled();
   });
 
@@ -41,14 +50,19 @@ describe("loadConfig — valid input", () => {
       DB_POOL_MAX: "25",
       FUNKY_LLM: "ai-sdk",
       ANTHROPIC_API_KEY: "sk-ant-secret",
+      FUNKY_SANDBOX: "e2b",
+      E2B_API_KEY: "e2b_secret",
+      FUNKY_E2B_SANDBOX_TIMEOUT_MS: "600000",
     });
     expect(cfg).toEqual({
       databaseUrl: BASE.DATABASE_URL,
       concurrency: 8,
       healthPort: 9191,
       llm: "ai-sdk",
-      sandbox: "subprocess",
+      sandbox: "e2b",
       anthropicApiKey: "sk-ant-secret",
+      e2bApiKey: "e2b_secret",
+      e2bSandboxTimeoutMs: 600_000,
       dbPoolMax: 25,
     });
   });
@@ -59,6 +73,12 @@ describe("loadConfig — invalid input exits the process", () => {
     ["missing DATABASE_URL", {}],
     ["empty DATABASE_URL", { DATABASE_URL: "" }],
     ["ai-sdk without ANTHROPIC_API_KEY", { ...BASE, FUNKY_LLM: "ai-sdk" }],
+    ["e2b without E2B_API_KEY", { ...BASE, FUNKY_SANDBOX: "e2b" }],
+    ["e2b with empty E2B_API_KEY", { ...BASE, FUNKY_SANDBOX: "e2b", E2B_API_KEY: "" }],
+    [
+      "e2b sandbox timeout below 60s",
+      { ...BASE, FUNKY_SANDBOX: "e2b", E2B_API_KEY: "e2b_x", FUNKY_E2B_SANDBOX_TIMEOUT_MS: "1000" },
+    ],
     ["concurrency below 1", { ...BASE, FUNKY_WORKER_CONCURRENCY: "0" }],
     ["concurrency not a number", { ...BASE, FUNKY_WORKER_CONCURRENCY: "lots" }],
     ["health port out of range", { ...BASE, FUNKY_WORKER_HEALTH_PORT: "70000" }],
