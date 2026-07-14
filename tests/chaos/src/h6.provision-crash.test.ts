@@ -37,14 +37,15 @@ it("crash mid-provision → second worker provisions, one event, one workdir", a
   await waitFor(() => dead, 30_000, "A crashed mid-provision");
   await world.expireLease(jobId);
 
-  // B — clean store — reclaims the provision job and completes it.
+  // B — clean store — reclaims the provision job and completes it. B flips the session to
+  // ready and appends session_provisioned in one tx, THEN acks — wait for the ack so the
+  // assertions don't race it (the ready commit lands before the ack).
   await world.startWorker();
-  await waitFor(async () => (await world.sessionStatus()) === "ready", 30_000, "provisioned");
+  await waitFor(async () => !(await world.jobExists(jobId)), 30_000, "B provisions and acks");
 
   const events = await world.readEvents();
   expect(events.filter((e) => e.type === "session_provisioned")).toHaveLength(1); // exactly one
   expect(await world.sessionStatus()).toBe("ready");
-  expect(await world.jobExists(jobId)).toBe(false); // B acked
 
   // No orphaned sandbox: the workdir is sessionId-derived, so re-provisioning reused the one
   // dir. It exists, and there is exactly one for this session.

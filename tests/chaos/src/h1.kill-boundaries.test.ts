@@ -48,7 +48,10 @@ describe("H1 — crash at each append boundary → the log always matches", () =
       await world.expireLease(jobId);
       await world.startWorker(); // clean worker B
 
-      await waitFor(async () => (await world.eventTypes()).at(-1) === "turn_completed", 30_000, "B completes");
+      // Wait for B to finish AND ack. For N=4 the terminal event is already present (A wrote
+      // it before dying), so waiting on the event alone would race B's reclaim + ack — the
+      // job being gone is the unambiguous "B fully processed it" signal.
+      await waitFor(async () => !(await world.jobExists(jobId)), 30_000, "B completes and acks");
 
       const events = await world.readEvents();
       expect(normalize(events)).toEqual(REFERENCE_LOG); // I1

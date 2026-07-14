@@ -28,15 +28,20 @@ it("permanently broken sandbox → turn_failed(SANDBOX_FATAL), never a hang", as
 
   await world.startWorker({ sandbox: alwaysFailSandbox() });
 
-  await waitFor(async () => (await world.eventTypes()).at(-1) === "turn_failed", 45_000, "turn_failed");
+  // The escalation records turn_failed and THEN acks the job. Wait for the queue to settle
+  // (job gone, or dead-lettered) so the assertions don't race the ack; the ack happens after
+  // the turn_failed commit, so a settled job guarantees the terminal event is in the log.
+  await waitFor(
+    async () => {
+      const s = await world.jobState(jobId);
+      return s === null || s === "dead";
+    },
+    45_000,
+    "job settled (terminal)",
+  );
 
   const events = await world.readEvents();
   const last = events.at(-1)!;
-  expect(last.type).toBe("turn_failed");
-  expect((last.payload as { error_class: string }).error_class).toBe("SANDBOX_FATAL"); // I4
-
-  // The queue stopped retrying: no active job remains (acked after recording the terminal
-  // event, or dead-lettered — either way, not queued/running).
-  const state = await world.jobState(jobId);
-  expect(state === null || state === "dead").toBe(true);
+  expect(last.type).toBe("turn_failed"); // I4 — the session ended, it did not hang
+  expect((last.payload as { error_class: string }).error_class).toBe("SANDBOX_FATAL");
 });
