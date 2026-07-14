@@ -215,9 +215,11 @@ it("runs one enqueued turn to completion and acks the job", async () => {
 
   await startTestWorker({ llm: doneLlm() });
 
-  await waitFor(async () => (await eventTypes(sid)).at(-1) === "turn_completed", 15_000, "completed");
+  // Wait for the ACK (row gone), not the terminal event: the event is appended inside the
+  // turn BEFORE the worker acks, so asserting on the row right after the event races the
+  // delete. The job being gone is the unambiguous "fully processed" signal.
+  await waitFor(async () => !(await jobExists(jobId)), 15_000, "completed and acked");
   expect(await eventTypes(sid)).toEqual(["user_message", "assistant_message", "turn_completed"]);
-  expect(await jobExists(jobId)).toBe(false); // acked → row gone
 });
 
 it("interleaves many turns on one event loop (handle is not awaited)", async () => {
@@ -436,14 +438,14 @@ it("★ crash-resumes: worker B finishes the turn worker A abandoned, running th
   // Worker B — real sandbox — reclaims the expired lease and finishes the turn.
   await startTestWorker({ llm, sandbox: realSandbox });
 
-  await waitFor(async () => (await eventTypes(sid)).at(-1) === "turn_completed", 15_000, "B completed");
+  // Job-gone = the terminal event landed AND B acked (the event alone races the ack).
+  await waitFor(async () => !(await jobExists(jobId)), 15_000, "B completed and acked");
 
   const events = await store.readEvents(NS, sid);
   const toolResults = events.filter((e) => e.type === "tool_result");
   expect(toolResults).toHaveLength(1); // the command ran ONCE (one tool_result)
   expect((toolResults[0]!.payload as { output: string }).output).toContain("RAN");
   expect(events.at(-1)?.type).toBe("turn_completed");
-  expect(await jobExists(jobId)).toBe(false);
 });
 
 it("drains: stop() resolves only after the in-flight turn finishes", async () => {
@@ -528,8 +530,10 @@ it("kill() resolves only after an in-flight pull lands, so post-kill lease edits
   // Because kill() was awaited, this expiry cannot be raced; a fresh worker reclaims at once.
   await pool.query("update turn_jobs set lease_expires_at = now() - interval '1 second' where id=$1", [jobId]);
   await startTestWorker({ llm: doneLlm() });
-  await waitFor(async () => (await eventTypes(sid)).at(-1) === "turn_completed", 15_000, "B completed");
-  expect(await jobExists(jobId)).toBe(false);
+  // Job-gone, not the terminal event: the event lands before the ack, so asserting on the
+  // row right after seeing the event would race B's delete.
+  await waitFor(async () => !(await jobExists(jobId)), 15_000, "B completed and acked");
+  expect((await eventTypes(sid)).at(-1)).toBe("turn_completed");
 });
 
 it("wakes on NOTIFY, starting the turn well before the fallback poll", async () => {
