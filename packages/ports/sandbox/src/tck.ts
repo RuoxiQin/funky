@@ -8,10 +8,7 @@
 //   runSandboxTck("subprocess", () => new SubprocessDriver());
 
 import { randomUUID } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it as baseIt } from "vitest";
 import { type ExecEvent, type Executor, type SandboxDriver, SandboxUnavailableError } from "./port";
 import type { ResolvedEnv } from "@funky/db/schema";
 
@@ -35,13 +32,19 @@ async function collect(it: AsyncIterable<ExecEvent>): Promise<Collected> {
   return { stdout, stderr, exit };
 }
 
-export function runSandboxTck(name: string, makeDriver: () => SandboxDriver): void {
+export function runSandboxTck(
+  name: string,
+  makeDriver: () => SandboxDriver,
+  opts?: { timeoutMs?: number }, // remote drivers provision + poll over the network
+): void {
+  const timeout = opts?.timeoutMs;
+  const it = timeout === undefined ? baseIt : (n: string, fn: () => Promise<void>) => baseIt(n, { timeout }, fn);
   describe(`sandbox TCK: ${name}`, () => {
     // Every case provisions its own sandbox (unique sessionId) and registers teardown.
     const cleanups: Array<() => Promise<void>> = [];
     afterEach(async () => {
       for (const c of cleanups.splice(0)) await c().catch(() => {});
-    });
+    }, timeout);
 
     async function sandbox(): Promise<{ driver: SandboxDriver; handle: Awaited<ReturnType<SandboxDriver["provision"]>>; exec: Executor }> {
       const driver = makeDriver();
@@ -66,11 +69,10 @@ export function runSandboxTck(name: string, makeDriver: () => SandboxDriver): vo
 
     it("3. dedupe: two concurrent execs of one idemKey run the command once", async () => {
       const { exec } = await sandbox();
-      const dir = await mkdtemp(join(tmpdir(), "funky-tck-"));
-      const marker = join(dir, "marker");
-      cleanups.push(() => rm(dir, { recursive: true, force: true }));
-
-      const cmd = `echo shared; echo $$ >> ${quote(marker)}; sleep 0.3`;
+      // The marker lives INSIDE the sandbox (commands run with cwd = the sandbox workdir)
+      // and is read back through the port — no host-filesystem assumptions, so the case
+      // holds for remote drivers too.
+      const cmd = `echo shared; echo $$ >> marker; sleep 0.3`;
       // Both start ~together; whichever wins the mkdir spawns, the other attaches. The
       // filesystem is the bus, so both iterables observe the same output either way.
       const [a, b] = await Promise.all([
@@ -83,7 +85,8 @@ export function runSandboxTck(name: string, makeDriver: () => SandboxDriver): vo
       expect(a.exit.code).toBe(0);
       expect(b.exit.code).toBe(0);
 
-      const lines = (await readFile(marker, "utf8")).trim().split("\n").filter(Boolean);
+      const marker = new TextDecoder().decode(await exec.readFile("marker"));
+      const lines = marker.trim().split("\n").filter(Boolean);
       expect(lines).toHaveLength(1); // command body executed exactly once
     });
 
@@ -148,9 +151,4 @@ export function runSandboxTck(name: string, makeDriver: () => SandboxDriver): vo
       expect(r.exit.code).toBe(124); // bash timeout convention — still a result, not an error
     });
   });
-}
-
-// Single-quote for the shell (the marker path we hand into the test command).
-function quote(s: string): string {
-  return `'${s.replace(/'/g, `'\\''`)}'`;
 }

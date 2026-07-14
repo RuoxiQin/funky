@@ -71,6 +71,8 @@ services:
       FUNKY_SANDBOX: ${FUNKY_SANDBOX:-subprocess}
       FUNKY_WORKER_CONCURRENCY: ${FUNKY_WORKER_CONCURRENCY:-10}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-} # empty unless the user sets it
+      E2B_API_KEY: ${E2B_API_KEY:-} # empty unless the user sets it
+      FUNKY_E2B_SANDBOX_TIMEOUT_MS: ${FUNKY_E2B_SANDBOX_TIMEOUT_MS:-1800000}
     depends_on:
       migrate:
         condition: service_completed_successfully

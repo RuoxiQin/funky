@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { Client, Pool } from "pg";
 import { createDb } from "@funky/db";
 import { FakeLlm, type LlmConfig, makeLlm } from "@funky/llm";
-import { makeSandbox } from "@funky/sandbox";
+import { makeSandbox, type SandboxConfig } from "@funky/sandbox";
 import { EventStore, JobQueue } from "@funky/sessions";
 import { type Config, loadConfig } from "./config";
 import { startHealthServer } from "./health";
@@ -32,7 +32,7 @@ const worker = startWorker({
   queue,
   store,
   llm: makeLlm(llmConfig(cfg)), // fake by default — no API key needed
-  sandbox: makeSandbox({ driver: cfg.sandbox }), // subprocess
+  sandbox: makeSandbox(sandboxConfig(cfg)), // subprocess by default — no account needed
   db,
   listenClient,
   concurrency: cfg.concurrency,
@@ -58,6 +58,18 @@ function llmConfig(c: Config): LlmConfig {
   return c.llm === "ai-sdk"
     ? { driver: "ai-sdk" }
     : { driver: "fake", instance: new FakeLlm({ scripts: {} }) };
+}
+
+// subprocess runs commands inside THIS container (dev default, no isolation). e2b gives
+// every session an isolated remote sandbox that outlives any single worker.
+function sandboxConfig(c: Config): SandboxConfig {
+  return c.sandbox === "e2b"
+    ? {
+        driver: "e2b",
+        apiKey: c.e2bApiKey ?? "", // non-null per the config refine; "" can't slip through the driver's key check
+        sandboxTimeoutMs: c.e2bSandboxTimeoutMs,
+      }
+    : { driver: "subprocess" };
 }
 
 // Shutdown: drain, don't kill. Stop pulling, let in-flight turns finish, then release
