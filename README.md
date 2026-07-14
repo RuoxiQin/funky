@@ -65,6 +65,13 @@ log, performs the single next step, and appends the result in one conditional-ap
 transaction. The durable record of what happened lives in the database, so a worker is a
 stateless, replaceable unit.
 
+This is not a design aspiration — it is a **tested property, proven by
+[`tests/chaos`](tests/chaos)**. That suite crashes a worker at every append boundary, hands
+one job to two workers at once, and races a slow worker against lease expiry — asserting each
+time that the event log is byte-for-byte identical, that every command ran **exactly once**,
+and that the turn still ends in a terminal event. It is required on `main`: a red chaos run
+blocks the release.
+
 > **Honest limit — the default `subprocess` driver.** The dev sandbox runs commands
 > **inside the worker container** (no isolation), so the sandbox filesystem and any
 > in-flight command are *not* durable: they live and die with that container. The E2B
@@ -154,6 +161,7 @@ packages/db        Drizzle schema + migrations
 - [x] Sessions & event log
 - [x] Agent runtime worker (the loop)
 - [x] Sandboxed execution — subprocess driver (dev default: commands run inside the worker container, no isolation) + E2B driver via ComputeSDK (isolated sandbox per session, outlives any worker)
+- [x] Chaos suite — durable execution proven at every crash point (I1–I4), required on `main` ([tests/chaos](tests/chaos))
 - [ ] SDKs (TypeScript, Python)
 
 ## Contributing
