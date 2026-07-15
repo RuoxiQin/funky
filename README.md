@@ -1,8 +1,8 @@
 # Funky
 
-Spin up agent swarms on demand. Define an agent (system prompt + model), give it a sandboxed environment, send it work — Funky handles the durability and the infrastructure.
+The open-source runtime for AI agents that do the work, not the talking.
 
-> **Status: early development.** You can run an agent end-to-end today — no API key required. The default dev sandbox has no isolation; add an E2B key for isolated per-session cloud sandboxes (see "Using a real sandbox").
+Define an agent, give it a sandboxed environment, send it work. Funky handles the durability and the infrastructure. Built for agent swarms, background agents, and long-horizon tasks.
 
 ## Quickstart
 
