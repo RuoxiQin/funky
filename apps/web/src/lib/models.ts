@@ -15,10 +15,17 @@ export const MODEL_OPTIONS: ModelOption[] = [
   { label: 'Sonnet 5', model: 'claude-sonnet-5' },
 ]
 
-export const DEFAULT_MODEL_LABEL = MODEL_OPTIONS[0].label
+// The first option is the default; declared explicitly so it's never `undefined` under
+// noUncheckedIndexedAccess.
+const DEFAULT_MODEL: ModelOption = MODEL_OPTIONS[0] ?? {
+  label: 'Opus 4.8',
+  model: 'claude-opus-4-8',
+}
+
+export const DEFAULT_MODEL_LABEL = DEFAULT_MODEL.label
 
 export function modelConfigFor(label: string): ModelConfig {
-  const opt = MODEL_OPTIONS.find((m) => m.label === label) ?? MODEL_OPTIONS[0]
+  const opt = MODEL_OPTIONS.find((m) => m.label === label) ?? DEFAULT_MODEL
   return { provider: 'anthropic', model: opt.model }
 }
 

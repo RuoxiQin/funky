@@ -8,6 +8,10 @@
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
+    /* Strictness — match the repo-root tsconfig so `pnpm -F web build` catches what CI does */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
