@@ -33,7 +33,8 @@ export async function runProvision(job: Job, deps: TurnDeps): Promise<TurnOutcom
     .limit(1);
   if (!env) return failProvision(deps, job, ns, sessionId, "env config not found");
 
-  // Snapshot the env config. template_id stays undefined for the subprocess driver.
+  // Snapshot the env config. template_id stays undefined here; only the e2b driver reads it
+  // (as its template hook) — the docker driver's base image is worker config, not per-env.
   const resolvedEnv: ResolvedEnv = {
     network: env.network,
   };

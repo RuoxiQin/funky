@@ -8,6 +8,12 @@
 
 FROM node:22-slim
 
+# The Docker CLI (client only, no daemon) — the worker's default `docker` sandbox driver
+# shells out to it, talking to the HOST daemon through a mounted /var/run/docker.sock (see
+# docker-compose.yml). Grabbed from the official multi-arch `docker` image; the api never
+# uses it, but this is the one shared image (api + worker), so it lives here.
+COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/docker
+
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
