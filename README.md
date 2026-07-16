@@ -1,3 +1,5 @@
+<img width="2103" height="748" alt="funky_github" src="https://github.com/user-attachments/assets/3433c331-58d6-48bd-aa05-8d605d8fc8ce" />
+
 # Funky
 
 The open-source runtime for AI agents that do the work, not the talking.
