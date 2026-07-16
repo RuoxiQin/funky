@@ -65,7 +65,7 @@ event: turn_completed
 > and watch it run commands in its sandbox — with the equivalent `curl` shown alongside. It's
 > a thin client over the same REST API (see [`apps/web`](apps/web)).
 
-<img width="1303" height="755" alt="Screenshot 2026-07-16 at 9 30 32 AM" src="https://github.com/user-attachments/assets/612e7f37-2559-41cd-bb1d-b899d212a4c2" />
+<img width="1462" height="753" alt="Screenshot 2026-07-16 at 10 22 12 AM" src="https://github.com/user-attachments/assets/46dd31b9-0388-46bf-a12d-f28abdb6a263" />
 
 ### Using a real model (e.g. sonnet-5)
 
