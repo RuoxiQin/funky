@@ -13,7 +13,7 @@ import { type ExecEvent, type Executor, type SandboxDriver, SandboxUnavailableEr
 import type { ResolvedEnv } from "@funky/db/schema";
 
 const SPEC: ResolvedEnv = {
-  egress: { allow: [] },
+  network: { type: "unrestricted" },
 };
 
 type Collected = { stdout: string; stderr: string; exit: { code: number; truncated: boolean } };

@@ -35,7 +35,7 @@ export async function runProvision(job: Job, deps: TurnDeps): Promise<TurnOutcom
 
   // Snapshot the env config. template_id stays undefined for the subprocess driver.
   const resolvedEnv: ResolvedEnv = {
-    egress: env.egress,
+    network: env.network,
   };
 
   try {

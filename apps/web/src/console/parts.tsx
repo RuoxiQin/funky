@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { AlertTriangle, Archive, Cpu, Layers, MessageSquare, MoreVertical, X, Zap } from 'lucide-react'
-import { Button, Select } from '../ui/ui'
+import { Button, Select, Textarea } from '../ui/ui'
 import { ANTHROPIC_ENABLED, MODEL_OPTIONS } from '../lib/models'
+import type { NetworkMode } from '../lib/network'
 import { useClickOutside } from './data'
 
 export type Tab = 'quickstart' | 'agents' | 'sessions' | 'environments'
@@ -97,6 +98,44 @@ export function ModelField({ value, onChange }: { value: string; onChange: (v: s
       options={MODEL_OPTIONS.map((m) => ({ value: m.label, label: m.label }))}
       onChange={onChange}
     />
+  )
+}
+
+export function NetworkFields({
+  mode,
+  allowedHosts,
+  onModeChange,
+  onAllowedHostsChange,
+}: {
+  mode: NetworkMode
+  allowedHosts: string
+  onModeChange: (mode: NetworkMode) => void
+  onAllowedHostsChange: (hosts: string) => void
+}) {
+  return (
+    <>
+      <Select
+        label="Network access"
+        value={mode}
+        options={[
+          { value: 'unrestricted', label: 'Unrestricted — allow all outbound traffic' },
+          { value: 'limited', label: 'Limited — only allow selected hosts' },
+        ]}
+        onChange={(value) => onModeChange(value as NetworkMode)}
+      />
+      {mode === 'limited' ? (
+        <div className="network-hosts">
+          <Textarea
+            label="Allowed hosts"
+            rows={2}
+            placeholder="api.example.com, *.example.org"
+            value={allowedHosts}
+            onChange={onAllowedHostsChange}
+          />
+          <p className="field-hint">Separate hosts with commas or new lines. Leave empty to deny all outbound access.</p>
+        </div>
+      ) : null}
+    </>
   )
 }
 

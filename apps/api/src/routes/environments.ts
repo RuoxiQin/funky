@@ -13,13 +13,14 @@ type Env = { Variables: { auth: AuthContext; requestId: string } };
 const hostnameRegex =
   /^(\*\.)?[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)*$/i;
 
-const egressSchema = z
-  .object({
-    allow: z
-      .array(z.string().max(255).regex(hostnameRegex, "must be a bare or wildcard-prefixed hostname"))
-      .max(100),
-  })
-  .strict();
+const allowedHostsSchema = z
+  .array(z.string().max(255).regex(hostnameRegex, "must be a bare or wildcard-prefixed hostname"))
+  .max(100);
+
+const networkSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("unrestricted") }).strict(),
+  z.object({ type: z.literal("limited"), allowed_hosts: allowedHostsSchema }).strict(),
+]);
 
 const createSchema = z
   .object({
@@ -27,7 +28,7 @@ const createSchema = z
     name: z.string().min(1).max(256),
     description: z.string().max(2048).nullish(),
     metadata: metadataSchema.optional(),
-    egress: egressSchema.optional(),
+    network: networkSchema.optional(),
   })
   .strict();
 

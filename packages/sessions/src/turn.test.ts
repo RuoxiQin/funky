@@ -126,7 +126,7 @@ async function seedSession(opts: {
   let handle: SandboxHandle | null = opts.handle ?? null;
   if (!handle && opts.provision !== false) {
     handle = await sandbox.provision(
-      { egress: { allow: [] } },
+      { network: { type: "unrestricted" } },
       sessionId,
     );
     handles.push(handle);
@@ -535,7 +535,9 @@ describe("runProvision", () => {
       sandbox_handle: { driver?: string } | null;
     }>("select status, resolved_env, sandbox_handle from sessions where id = $1", [sessionId]);
     expect(rows[0]!.status).toBe("ready");
-    expect(rows[0]!.resolved_env).toMatchObject({ egress: { allow: [] } });
+    expect(rows[0]!.resolved_env).toMatchObject({
+      network: { type: "unrestricted" },
+    });
     expect(rows[0]!.sandbox_handle?.driver).toBe("subprocess");
     if (rows[0]!.sandbox_handle) handles.push(rows[0]!.sandbox_handle as SandboxHandle);
 

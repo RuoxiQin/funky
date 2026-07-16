@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { agents as agentsApi, environments as envsApi, sessions as sessApi } from '../lib/api'
 import { DEFAULT_MODEL_LABEL, modelConfigFor } from '../lib/models'
+import { networkPolicy, networkSummary, type NetworkMode } from '../lib/network'
 import { errMsg, initials } from '../lib/format'
 import { Avatar, Badge, Button, CodeBlock, Input, Textarea } from '../ui/ui'
-import { ModelField } from './parts'
+import { ModelField, NetworkFields } from './parts'
 import { buildCurl } from './curl'
 
 const DEFAULT_PROMPT =
@@ -21,6 +22,8 @@ export function QuickStart({ onLaunch }: { onLaunch: (sessionId: string) => Prom
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_PROMPT)
   const [envName, setEnvName] = useState('basic')
   const [envDesc, setEnvDesc] = useState('default dev box')
+  const [networkMode, setNetworkMode] = useState<NetworkMode>('unrestricted')
+  const [allowedHosts, setAllowedHosts] = useState('')
   const [message, setMessage] = useState('What are the best restaurants in San Francisco right now?')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -61,7 +64,11 @@ export function QuickStart({ onLaunch }: { onLaunch: (sessionId: string) => Prom
         system_prompt: systemPrompt.trim(),
         model: modelConfigFor(model),
       })
-      const env = await envsApi.create({ name: envName.trim(), description: envDesc.trim() || null })
+      const env = await envsApi.create({
+        name: envName.trim(),
+        description: envDesc.trim() || null,
+        network: networkPolicy(networkMode, allowedHosts),
+      })
       const session = await sessApi.create({ agent: agent.id, environment_id: env.id })
       const ready = await sessApi.waitReady(session.id)
       if (ready.status === 'failed') throw new Error('The session failed to provision its sandbox.')
@@ -74,7 +81,8 @@ export function QuickStart({ onLaunch }: { onLaunch: (sessionId: string) => Prom
     }
   }
 
-  const curl = buildCurl({ step, agentName, model, systemPrompt, envName, envDesc, message })
+  const network = networkPolicy(networkMode, allowedHosts)
+  const curl = buildCurl({ step, agentName, model, systemPrompt, envName, envDesc, network, message })
 
   return (
     <div className="content">
@@ -112,6 +120,12 @@ export function QuickStart({ onLaunch }: { onLaunch: (sessionId: string) => Prom
               </div>
               <Input label="Name" placeholder="basic" value={envName} onChange={setEnvName} />
               <Textarea label="Description" rows={3} placeholder="default dev box" value={envDesc} onChange={setEnvDesc} />
+              <NetworkFields
+                mode={networkMode}
+                allowedHosts={allowedHosts}
+                onModeChange={setNetworkMode}
+                onAllowedHostsChange={setAllowedHosts}
+              />
               <div className="qs-foot qs-foot--split">
                 <Button variant="secondary" size="lg" onClick={back}>
                   Back
@@ -133,6 +147,7 @@ export function QuickStart({ onLaunch }: { onLaunch: (sessionId: string) => Prom
                 <ReviewRow label="Agent" value={agentName} strong />
                 <ReviewRow label="Model" value={model} mono />
                 <ReviewRow label="Environment" value={envName} mono />
+                <ReviewRow label="Network" value={networkSummary(network)} />
                 <ReviewRow label="System prompt" value={systemPrompt} />
               </div>
               <div className="qs-foot qs-foot--split">

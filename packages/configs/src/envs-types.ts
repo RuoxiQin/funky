@@ -1,5 +1,5 @@
 // packages/configs/src/envs-types.ts
-import type { EgressPolicy } from "@funky/db/schema";
+import type { NetworkPolicy } from "@funky/db/schema";
 
 export type Environment = {
   type: "environment";
@@ -7,7 +7,7 @@ export type Environment = {
   name: string;
   description: string | null;
   metadata: Record<string, string>;
-  egress: EgressPolicy;
+  network: NetworkPolicy;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
@@ -18,7 +18,7 @@ export type CreateEnvInput = {
   name: string;
   description?: string | null;
   metadata?: Record<string, string>;
-  egress?: EgressPolicy;
+  network?: NetworkPolicy;
 };
 
 export type UpdateEnvInput = Partial<Omit<CreateEnvInput, "id">>;

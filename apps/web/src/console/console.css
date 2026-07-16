@@ -722,6 +722,17 @@
   color: var(--text-strong);
 }
 
+.network-hosts {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.field-hint {
+  margin: 0;
+  font: 12px/1.45 var(--font-body);
+  color: var(--text-muted);
+}
+
 /* modal intro line + form */
 .modal__intro {
   font: 14px/1.5 var(--font-body);

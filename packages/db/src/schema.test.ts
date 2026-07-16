@@ -158,7 +158,12 @@ describe("env_configs", () => {
       name: { type: "text", notNull: true },
       description: { type: "text", notNull: false },
       metadata: { type: "jsonb", notNull: true, hasDefault: true, default: {} },
-      egress: { type: "jsonb", notNull: true, hasDefault: true, default: { allow: [] } },
+      network: {
+        type: "jsonb",
+        notNull: true,
+        hasDefault: true,
+        default: { type: "unrestricted" },
+      },
       created_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
       updated_at: { type: "timestamp with time zone", notNull: true, hasDefault: true },
       archived_at: { type: "timestamp with time zone", notNull: false },
@@ -347,16 +352,16 @@ describe("ModelConfig", () => {
 // -------------------------------------------------------------- session types
 
 describe("session domain types", () => {
-  it("ResolvedEnv snapshots optional template and egress", () => {
+  it("ResolvedEnv snapshots optional template and network policy", () => {
     const env: ResolvedEnv = {
       template_id: "e2b-abc123",
-      egress: { allow: ["api.example.com"] },
+      network: { type: "limited", allowed_hosts: ["api.example.com"] },
     };
-    expect(env.egress.allow).toEqual(["api.example.com"]);
+    expect(env.network).toEqual({ type: "limited", allowed_hosts: ["api.example.com"] });
 
     // template_id is optional — driver-specific, absent for drivers that don't use it.
     const minimal: ResolvedEnv = {
-      egress: { allow: [] },
+      network: { type: "unrestricted" },
     };
     expect(minimal.template_id).toBeUndefined();
   });

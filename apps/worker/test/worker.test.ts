@@ -382,7 +382,7 @@ it("★ crash-resumes: worker B finishes the turn worker A abandoned, running th
   // A provisioned subprocess sandbox both workers share (same session → same workdir).
   const sid = randomUUID();
   const handle = await realSandbox.provision(
-    { egress: { allow: [] } },
+    { network: { type: "unrestricted" } },
     sid,
   );
   await seedSession({ id: sid, status: "ready", handle });

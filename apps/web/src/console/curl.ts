@@ -1,4 +1,5 @@
 import { modelConfigFor } from '../lib/models'
+import type { NetworkPolicy } from '../lib/types'
 
 // The Quick Start's right-hand code panel. Unlike the prototype's illustrative sample, this
 // mirrors the *real* requests the console makes (and the README quickstart), so a developer
@@ -10,6 +11,7 @@ export type CurlState = {
   systemPrompt: string
   envName: string
   envDesc: string
+  network: NetworkPolicy
   message: string
 }
 
@@ -36,7 +38,8 @@ AID=$(curl -s -X POST localhost:3000/v1/agents -H "$H" -H "$J" -d '{
     code += `\n\n# 2. an environment: where its commands run
 EID=$(curl -s -X POST localhost:3000/v1/environments -H "$H" -H "$J" -d '{
   "name": ${j(st.envName || 'basic')},
-  "description": ${j(st.envDesc || 'default dev box')}
+  "description": ${j(st.envDesc || 'default dev box')},
+  "network": ${JSON.stringify(st.network)}
 }' | jq -r .id)`
   }
 

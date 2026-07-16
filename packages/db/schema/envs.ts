@@ -1,6 +1,6 @@
 // packages/db/schema/envs.ts
 // Environment config = the reusable, template-like recipe for a session's sandbox
-// (egress policy). One environment fans out to many sessions; each session provisions
+// (network policy). One environment fans out to many sessions; each session provisions
 // its OWN isolated sandbox (filesystem is per-session, never shared). Single table +
 // archive, NOT versioned: the config is consumed once at sandbox provision, so updates
 // only affect future sessions. When sessions land they snapshot resolved_env at
@@ -16,7 +16,9 @@ import {
   index, jsonb, pgTable, text, timestamp, uuid,
 } from "drizzle-orm/pg-core";
 
-export type EgressPolicy = { allow: string[] }; // domain allowlist; [] = deny all egress
+export type NetworkPolicy =
+  | { type: "unrestricted" }
+  | { type: "limited"; allowed_hosts: string[] };
 
 export const envConfigs = pgTable(
   "env_configs",
@@ -28,7 +30,10 @@ export const envConfigs = pgTable(
     metadata: jsonb("metadata").$type<Record<string, string>>().notNull().default({}),
 
     // ---- the recipe ----
-    egress: jsonb("egress").$type<EgressPolicy>().notNull().default({ allow: [] }),
+    network: jsonb("network")
+      .$type<NetworkPolicy>()
+      .notNull()
+      .default({ type: "unrestricted" }),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

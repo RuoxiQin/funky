@@ -6,6 +6,7 @@ import type {
   Environment,
   ModelConfig,
   Page,
+  NetworkPolicy,
   SendMessageResult,
   Session,
   SessionEvent,
@@ -75,11 +76,12 @@ export const agents = {
 
 // ---- environments -----------------------------------------------------------
 
-// The environment is just identity + egress policy; the create form collects name +
-// description. The sandbox runtime image is the backend's concern, not a user field.
+// The environment is just identity + network policy. The sandbox runtime image is the
+// backend's concern, not a user field.
 export type CreateEnvInput = {
   name: string
   description?: string | null
+  network: NetworkPolicy
 }
 
 export const environments = {
@@ -87,6 +89,7 @@ export const environments = {
     request<Environment>('POST', '/v1/environments', {
       name: input.name,
       description: input.description ?? null,
+      network: input.network,
     }),
   list: (params?: { limit?: number; after_id?: string; include_archived?: boolean }) =>
     request<Page<Environment>>('GET', `/v1/environments${query(params)}`),
