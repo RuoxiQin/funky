@@ -1,30 +1,27 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { agents as agentsApi, environments as envsApi, sessions as sessApi } from '../lib/api'
-import { DEFAULT_MODEL_LABEL, modelConfigFor } from '../lib/models'
+import { modelConfigFor } from '../lib/models'
 import { networkPolicy, networkSummary, type NetworkMode } from '../lib/network'
 import { errMsg, initials } from '../lib/format'
 import { Avatar, Badge, Button, CodeBlock, Input, Textarea } from '../ui/ui'
 import { ModelField, NetworkFields } from './parts'
 import { buildCurl } from './curl'
 
-const DEFAULT_PROMPT =
-  'You are Restaurant Scout, a friendly research assistant. When the user asks about ' +
-  'restaurants, cafés, or places to go, look things up and recommend a few strong options, ' +
-  'each with a one-line reason. Keep answers concise, specific, and well organized.'
+const DEFAULT_PROMPT = 'You are an autonomous research and coding agent.'
 
 const STEP_LABELS = ['Create agent', 'Configure environment', 'Start session', 'First message']
 
 export function QuickStart({ onLaunch }: { onLaunch: (sessionId: string) => Promise<void> }) {
   const [step, setStep] = useState(1)
-  const [agentName, setAgentName] = useState('Restaurant Scout')
-  const [model, setModel] = useState(DEFAULT_MODEL_LABEL)
+  const [agentName, setAgentName] = useState('Funky Assistant')
+  const [model, setModel] = useState('Sonnet 5')
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_PROMPT)
   const [envName, setEnvName] = useState('basic')
   const [envDesc, setEnvDesc] = useState('default dev box')
   const [networkMode, setNetworkMode] = useState<NetworkMode>('unrestricted')
   const [allowedHosts, setAllowedHosts] = useState('')
-  const [message, setMessage] = useState('What are the best restaurants in San Francisco right now?')
+  const [message, setMessage] = useState('What is the top 3 trending project on Github?')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
