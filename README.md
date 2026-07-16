@@ -64,8 +64,7 @@ event: turn_completed
 > and watch it run commands in its sandbox — with the equivalent `curl` shown alongside. It's
 > a thin client over the same REST API (see [`apps/web`](apps/web)).
 
-<!-- TODO: insert Funky Console screenshot here -->
-![Funky Console — the same agent → environment → session → chat flow in the browser](./docs/funky-console.png)
+<img width="1303" height="755" alt="Screenshot 2026-07-16 at 9 30 32 AM" src="https://github.com/user-attachments/assets/612e7f37-2559-41cd-bb1d-b899d212a4c2" />
 
 ### Durability
 
