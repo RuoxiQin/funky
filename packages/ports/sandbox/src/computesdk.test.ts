@@ -20,8 +20,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { e2b } from "@computesdk/e2b";
-import type { CommandResult, SandboxInterface } from "computesdk";
-import { describe, it } from "vitest";
+import type { CommandResult, CreateSandboxOptions, SandboxInterface } from "computesdk";
+import { describe, expect, it } from "vitest";
 import { type ComputeProvider, ComputeSdkDriver } from "./drivers/computesdk";
 import { runSandboxTck } from "./tck";
 
@@ -51,10 +51,48 @@ if (apiKey) {
   });
 }
 
+describe("ComputeSDK network policies", () => {
+  it("maps a limited policy to E2B allowOut", async () => {
+    let createOptions: CreateSandboxOptions | undefined;
+    const driver = new ComputeSdkDriver({
+      providerName: "e2b",
+      provider: localShellProvider((options) => {
+        createOptions = options;
+      }),
+    });
+
+    const handle = await driver.provision(
+      { network: { type: "limited", allowed_hosts: ["api.example.com", "*.example.org"] } },
+      randomUUID(),
+    );
+    try {
+      expect(createOptions?.network).toEqual({
+        allowOut: ["api.example.com", "*.example.org"],
+      });
+    } finally {
+      await driver.teardown(handle);
+    }
+  });
+
+  it("fails closed when a provider cannot enforce a limited policy", async () => {
+    const driver = new ComputeSdkDriver({
+      providerName: "fake-local",
+      provider: localShellProvider(),
+    });
+
+    await expect(
+      driver.provision(
+        { network: { type: "limited", allowed_hosts: ["api.example.com"] } },
+        randomUUID(),
+      ),
+    ).rejects.toThrow("fake-local does not support limited network policies");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // The fake provider. One Map entry per "sandbox": a temp dir that plays $HOME.
 // ---------------------------------------------------------------------------
-function localShellProvider(): ComputeProvider {
+function localShellProvider(onCreate?: (options?: CreateSandboxOptions) => void): ComputeProvider {
   const roots = new Map<string, { home: string; destroyed: boolean }>();
   const pathPrefix = timeoutShimPathPrefix();
 
@@ -115,7 +153,8 @@ function localShellProvider(): ComputeProvider {
   return {
     name: "fake-local",
     sandbox: {
-      create: async () => {
+      create: async (options) => {
+        onCreate?.(options);
         const id = randomUUID();
         roots.set(id, { home: mkdtempSync(join(tmpdir(), "funky-csdk-")), destroyed: false });
         return makeSandbox(id);

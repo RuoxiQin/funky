@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Box, Layers } from 'lucide-react'
 import { environments as envsApi } from '../lib/api'
 import type { Environment } from '../lib/types'
+import { networkPolicy, networkSummary, type NetworkMode } from '../lib/network'
 import { errMsg, slug } from '../lib/format'
 import { Avatar, Badge, Button, Checkbox, Input, Modal, Textarea } from '../ui/ui'
-import { ArchiveItem, EmptyState, Kebab, PageHeader, SelectionBar } from './parts'
+import { ArchiveItem, EmptyState, Kebab, NetworkFields, PageHeader, SelectionBar } from './parts'
 import { useSelection } from './data'
 
 export function Environments({
@@ -20,6 +21,8 @@ export function Environments({
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
+  const [networkMode, setNetworkMode] = useState<NetworkMode>('unrestricted')
+  const [allowedHosts, setAllowedHosts] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function create() {
@@ -29,10 +32,16 @@ export function Environments({
     }
     setSaving(true)
     try {
-      await envsApi.create({ name: name.trim(), description: desc.trim() || null })
+      await envsApi.create({
+        name: name.trim(),
+        description: desc.trim() || null,
+        network: networkPolicy(networkMode, allowedHosts),
+      })
       setOpen(false)
       setName('')
       setDesc('')
+      setNetworkMode('unrestricted')
+      setAllowedHosts('')
       await reload()
     } catch (e) {
       notify(errMsg(e))
@@ -83,6 +92,7 @@ export function Environments({
                   <div className="row__sub">{slug(e.name)}</div>
                 </div>
                 <div className="row__excerpt">{e.description ?? ''}</div>
+                <Badge tone="neutral">{networkSummary(e.network)}</Badge>
                 <Badge tone="green" dot>
                   Active
                 </Badge>
@@ -116,6 +126,12 @@ export function Environments({
             placeholder="What this environment provides…"
             value={desc}
             onChange={setDesc}
+          />
+          <NetworkFields
+            mode={networkMode}
+            allowedHosts={allowedHosts}
+            onModeChange={setNetworkMode}
+            onAllowedHostsChange={setAllowedHosts}
           />
         </div>
       </Modal>

@@ -214,7 +214,7 @@ export async function buildWorld(
   const llm = scriptedLlm({ [sessionId]: script });
 
   const resolvedEnv: ResolvedEnv = {
-    egress: { allow: [] },
+    network: { type: "unrestricted" },
   };
   // Most scenarios seed the session ALREADY provisioned — provisioning is not what they
   // test. H6 sets provisioned:false so the worker runs runProvision (and can crash in it).

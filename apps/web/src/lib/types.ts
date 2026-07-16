@@ -33,7 +33,9 @@ export type Agent = {
   archived_at: string | null
 }
 
-export type Egress = { allow: string[] }
+export type NetworkPolicy =
+  | { type: 'unrestricted' }
+  | { type: 'limited'; allowed_hosts: string[] }
 
 export type Environment = {
   type: 'environment'
@@ -41,7 +43,7 @@ export type Environment = {
   name: string
   description: string | null
   metadata: Record<string, string>
-  egress: Egress
+  network: NetworkPolicy
   created_at: string
   updated_at: string
   archived_at: string | null

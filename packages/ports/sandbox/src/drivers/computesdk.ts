@@ -58,14 +58,20 @@ export class ComputeSdkDriver implements SandboxDriver {
     this.sandboxTimeoutMs = opts.sandboxTimeoutMs ?? DEFAULT_SANDBOX_TIMEOUT_MS;
   }
 
-  async provision(_spec: ResolvedEnv, sessionId: string): Promise<SandboxHandle> {
-    // v1 parity with subprocess: spec.egress is not mapped yet — the provider boots its
-    // default template. autoPause makes the timeout a pause (disk
-    // persisted, resumed on connect) instead of a kill; that's what keeps reboot honest.
+  async provision(spec: ResolvedEnv, sessionId: string): Promise<SandboxHandle> {
+    if (spec.network.type === "limited" && this.providerName !== "e2b") {
+      throw new Error(`${this.providerName} does not support limited network policies`);
+    }
+
+    // autoPause makes the timeout a pause (disk persisted, resumed on connect) instead
+    // of a kill; that's what keeps reboot honest.
     const sb = await this.manager.sandbox.create({
       timeout: this.sandboxTimeoutMs,
       metadata: { funky_session_id: sessionId },
       autoPause: true,
+      ...(spec.network.type === "limited" && {
+        network: { allowOut: spec.network.allowed_hosts },
+      }),
     });
     // Resolve the workdir REMOTELY ($HOME varies by template). Markers around the path
     // guard against login-shell noise (motd, profile echoes) polluting stdout.

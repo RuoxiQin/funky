@@ -22,7 +22,10 @@ const MAX_OUTPUT_BYTES = 200_000;
 const POLL_MS = 100;
 
 export class SubprocessDriver implements SandboxDriver {
-  async provision(_spec: ResolvedEnv, sessionId: string): Promise<SandboxHandle> {
+  async provision(spec: ResolvedEnv, sessionId: string): Promise<SandboxHandle> {
+    if (spec.network.type === "limited") {
+      throw new Error("subprocess driver does not support limited network policies");
+    }
     const workdir = path.join(ROOT, sessionId);
     await fs.mkdir(workdir, { recursive: true });
     return { driver: "subprocess", workdir };

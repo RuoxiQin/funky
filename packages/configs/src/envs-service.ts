@@ -7,13 +7,13 @@
 import { and, desc, eq, isNull, lt } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { Db } from "@funky/db";
-import { envConfigs } from "@funky/db/schema";
+import { envConfigs, type NetworkPolicy } from "@funky/db/schema";
 import { ConflictError, NotFoundError } from "./errors";
 import { isUniqueViolation, jsonEq } from "./util";
 import type { CreateEnvInput, Environment, UpdateEnvInput } from "./envs-types";
 import type { AuthContext, Page } from "./types";
 
-const DEFAULT_EGRESS = { allow: [] as string[] }; // deny-all egress by default
+const DEFAULT_NETWORK: NetworkPolicy = { type: "unrestricted" };
 
 type EnvRow = typeof envConfigs.$inferSelect;
 
@@ -39,7 +39,7 @@ export class EnvsService {
           name: input.name,
           description: input.description ?? null,
           metadata: input.metadata ?? {},
-          egress: input.egress ?? DEFAULT_EGRESS,
+          network: input.network ?? DEFAULT_NETWORK,
         })
         .returning();
       return { environment: toEnvironment(row!), created: true };
@@ -61,7 +61,7 @@ export class EnvsService {
       existing.name === input.name &&
       (existing.description ?? null) === (input.description ?? null) &&
       jsonEq(existing.metadata, input.metadata ?? {}) &&
-      jsonEq(existing.egress, input.egress ?? DEFAULT_EGRESS);
+      jsonEq(existing.network, input.network ?? DEFAULT_NETWORK);
     if (!same) {
       throw new ConflictError("an environment with this id exists with a different configuration");
     }
@@ -111,7 +111,7 @@ export class EnvsService {
         ...(patch.name !== undefined && { name: patch.name }),
         ...(patch.description !== undefined && { description: patch.description }),
         ...(patch.metadata !== undefined && { metadata: patch.metadata }), // replace, not merge
-        ...(patch.egress !== undefined && { egress: patch.egress }),
+        ...(patch.network !== undefined && { network: patch.network }),
         updatedAt: new Date(),
       })
       .where(and(eq(envConfigs.id, id), eq(envConfigs.namespace, ctx.namespace)))
@@ -166,7 +166,7 @@ function toEnvironment(row: EnvRow): Environment {
     name: row.name,
     description: row.description,
     metadata: row.metadata,
-    egress: row.egress,
+    network: row.network,
     created_at: row.createdAt.toISOString(),
     updated_at: row.updatedAt.toISOString(),
     archived_at: row.archivedAt?.toISOString() ?? null,

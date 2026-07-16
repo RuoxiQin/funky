@@ -17,13 +17,13 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { agentConfigs } from "./configs";
-import { envConfigs } from "./envs"; // ⚠ adjust if the env iteration named this file differently
+import { envConfigs, type NetworkPolicy } from "./envs"; // ⚠ adjust if the env iteration named this file differently
 
 /** Snapshot captured at sandbox provision; reboots rebuild from THIS, never from the
  *  (mutable) env config. template_id is driver-specific (e.g. E2B template). */
 export type ResolvedEnv = {
   template_id?: string;
-  egress: { allow: string[] };
+  network: NetworkPolicy;
 };
 
 export type SessionStatus = "provisioning" | "ready" | "failed" | "archived";

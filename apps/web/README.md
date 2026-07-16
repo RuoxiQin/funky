@@ -48,9 +48,9 @@ The UI is intentionally simpler than the API; a few fields are filled in for you
 - **Model** — the dropdown labels map to the API's `{ provider, model }` shape
   (`src/lib/models.ts`). With the default zero-key `fake` LLM any choice works; with
   `FUNKY_LLM=ai-sdk` + `ANTHROPIC_API_KEY`, pick the Claude option.
-- **Environment** — the create form asks only for name + description. There is no image
-  to pick: the sandbox runtime is the backend's concern (the dev driver runs commands in
-  the worker container), so the environment is just identity + egress policy.
+- **Environment** — the create form asks for name, description, and network access. There
+  is no image to pick: the sandbox runtime is the backend's concern (the dev driver runs
+  commands in the worker container), so the environment is just identity + network policy.
 - **Chat** — messages are `POST`ed to `/v1/sessions/:id/messages`; replies (and the
   agent's sandbox activity) arrive on `GET /v1/sessions/:id/events/stream`, which the
   event log makes durable and replayable.
