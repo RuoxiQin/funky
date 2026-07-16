@@ -16,11 +16,16 @@ const EnvSchema = z
     FUNKY_WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(50),
     FUNKY_WORKER_HEALTH_PORT: z.coerce.number().int().min(1).max(65535).default(9090),
     FUNKY_LLM: z.enum(["fake", "ai-sdk"]).default("fake"),
-    FUNKY_SANDBOX: z.enum(["subprocess", "e2b"]).default("subprocess"),
+    // docker (default): an isolated container per session on the local daemon — no account.
+    // e2b: an isolated remote sandbox per session. (The in-process subprocess driver still
+    // exists for the offline test suites, but is not a production sandbox option.)
+    FUNKY_SANDBOX: z.enum(["docker", "e2b"]).default("docker"),
     // Required ONLY when FUNKY_LLM=ai-sdk (the fake driver makes no network calls).
     ANTHROPIC_API_KEY: optionalSecret,
-    // Required ONLY when FUNKY_SANDBOX=e2b (subprocess needs no account).
+    // Required ONLY when FUNKY_SANDBOX=e2b (docker needs no account).
     E2B_API_KEY: optionalSecret,
+    // Base image for the docker driver (built from docker/sandbox.Dockerfile).
+    FUNKY_DOCKER_IMAGE: z.string().min(1).default("funky-sandbox:trixie"),
     // Idle lifetime before an e2b sandbox auto-pauses (resumed on the next command).
     FUNKY_E2B_SANDBOX_TIMEOUT_MS: z.coerce
       .number()
@@ -38,7 +43,7 @@ const EnvSchema = z
   .refine((e) => e.FUNKY_SANDBOX !== "e2b" || e.E2B_API_KEY !== undefined, {
     message:
       "E2B_API_KEY is required when FUNKY_SANDBOX=e2b. " +
-      "Set it, or leave FUNKY_SANDBOX=subprocess for local development.",
+      "Set it, or leave FUNKY_SANDBOX=docker for local development.",
     path: ["E2B_API_KEY"],
   });
 
@@ -47,12 +52,14 @@ export type Config = {
   concurrency: number;
   healthPort: number;
   llm: "fake" | "ai-sdk";
-  sandbox: "subprocess" | "e2b";
+  sandbox: "docker" | "e2b";
   /** null = fake driver; no key needed. */
   anthropicApiKey: string | null;
-  /** null = subprocess driver; no key needed. */
+  /** null = docker driver; no key needed. */
   e2bApiKey: string | null;
   e2bSandboxTimeoutMs: number;
+  /** Base image for the docker driver. */
+  dockerImage: string;
   dbPoolMax: number;
 };
 
@@ -76,6 +83,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     anthropicApiKey: e.ANTHROPIC_API_KEY ?? null,
     e2bApiKey: e.E2B_API_KEY ?? null,
     e2bSandboxTimeoutMs: e.FUNKY_E2B_SANDBOX_TIMEOUT_MS,
+    dockerImage: e.FUNKY_DOCKER_IMAGE,
     dbPoolMax: e.DB_POOL_MAX,
   };
 }

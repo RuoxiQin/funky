@@ -26,11 +26,21 @@ describe("loadConfig — valid input", () => {
       concurrency: 50,
       healthPort: 9090,
       llm: "fake",
-      sandbox: "subprocess",
+      sandbox: "docker",
       anthropicApiKey: null,
       e2bApiKey: null,
       e2bSandboxTimeoutMs: 30 * 60_000,
+      dockerImage: "funky-sandbox:trixie",
       dbPoolMax: 10,
+    });
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  it("defaults the docker driver's image and lets FUNKY_DOCKER_IMAGE override it", () => {
+    expect(loadConfig(BASE).dockerImage).toBe("funky-sandbox:trixie");
+    expect(loadConfig({ ...BASE, FUNKY_DOCKER_IMAGE: "my-sandbox:latest" })).toMatchObject({
+      sandbox: "docker",
+      dockerImage: "my-sandbox:latest",
     });
     expect(exitSpy).not.toHaveBeenCalled();
   });
@@ -63,6 +73,7 @@ describe("loadConfig — valid input", () => {
       anthropicApiKey: "sk-ant-secret",
       e2bApiKey: "e2b_secret",
       e2bSandboxTimeoutMs: 600_000,
+      dockerImage: "funky-sandbox:trixie",
       dbPoolMax: 25,
     });
   });
@@ -83,7 +94,8 @@ describe("loadConfig — invalid input exits the process", () => {
     ["concurrency not a number", { ...BASE, FUNKY_WORKER_CONCURRENCY: "lots" }],
     ["health port out of range", { ...BASE, FUNKY_WORKER_HEALTH_PORT: "70000" }],
     ["unknown FUNKY_LLM", { ...BASE, FUNKY_LLM: "gpt" }],
-    ["unknown FUNKY_SANDBOX", { ...BASE, FUNKY_SANDBOX: "docker" }],
+    ["unknown FUNKY_SANDBOX", { ...BASE, FUNKY_SANDBOX: "podman" }],
+    ["subprocess is not a production sandbox option", { ...BASE, FUNKY_SANDBOX: "subprocess" }],
     ["DB_POOL_MAX below 1", { ...BASE, DB_POOL_MAX: "0" }],
   ])("exits on %s", (_label, env) => {
     expect(() => loadConfig(env as NodeJS.ProcessEnv)).toThrow("process.exit(1)");

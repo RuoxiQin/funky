@@ -31,6 +31,17 @@ services:
       postgres:
         condition: service_healthy
 
+  # One-shot: builds the base image the `docker` sandbox driver starts each session from,
+  # tagging it on the SAME daemon the worker reaches through the mounted socket below. It
+  # only builds+tags, so it runs `true` and exits; the worker waits for it to complete.
+  sandbox-image:
+    build:
+      context: docker
+      dockerfile: sandbox.Dockerfile
+    image: ${FUNKY_DOCKER_IMAGE:-funky-sandbox:trixie}
+    command: ["true"]
+    restart: "no"
+
   api:
     build: .
     ports:
@@ -65,16 +76,26 @@ services:
   worker:
     build: .
     command: ["pnpm", "-F", "worker", "start:src"]
+    # The default `docker` sandbox driver spawns each session's container as a SIBLING on the
+    # host daemon (docker-out-of-docker) via this socket — the worker's `docker` CLI (baked
+    # into the image) talks to it. NOTE: this grants the worker host-daemon access, and
+    # sandbox containers share the host kernel — fine for local/trusted use; for untrusted
+    # workloads prefer FUNKY_SANDBOX=e2b (remote) or run the containers under gVisor/Kata.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DATABASE_URL: postgres://funky:funky@postgres:5432/funky # ← service name, not localhost
       FUNKY_LLM: ${FUNKY_LLM:-fake}
-      FUNKY_SANDBOX: ${FUNKY_SANDBOX:-subprocess}
+      FUNKY_SANDBOX: ${FUNKY_SANDBOX:-docker}
+      FUNKY_DOCKER_IMAGE: ${FUNKY_DOCKER_IMAGE:-funky-sandbox:trixie} # built by the sandbox-image service
       FUNKY_WORKER_CONCURRENCY: ${FUNKY_WORKER_CONCURRENCY:-10}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-} # empty unless the user sets it
       E2B_API_KEY: ${E2B_API_KEY:-} # empty unless the user sets it
       FUNKY_E2B_SANDBOX_TIMEOUT_MS: ${FUNKY_E2B_SANDBOX_TIMEOUT_MS:-1800000}
     depends_on:
       migrate:
+        condition: service_completed_successfully
+      sandbox-image: # the base image must exist on the daemon before the first session runs
         condition: service_completed_successfully
     healthcheck:
       test:

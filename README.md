@@ -82,13 +82,18 @@ time that the event log is byte-for-byte identical, that every command ran **exa
 and that the turn still ends in a terminal event. It is required on `main`: a red chaos run
 blocks the release.
 
-> **Honest limit — the default `subprocess` driver.** The dev sandbox runs commands
-> **inside the worker container** (no isolation), so the sandbox filesystem and any
-> in-flight command are *not* durable: they live and die with that container. The E2B
-> driver (next section) removes this limit: the sandbox outlives any single worker, a
-> running command records its output and exit code inside the sandbox itself, and the
-> idempotent `exec` contract (a command never runs twice, whatever the driver) lets a
-> replacement worker re-attach to work a dead worker started and finish the turn.
+> **Honest limits — the default `docker` driver.** Each session gets its own isolated
+> container on the local Docker daemon (real filesystem, process, and host-network
+> isolation). The container outlives the worker *process*, and because a running command
+> records its output and exit code inside the container itself, a replacement worker
+> re-attaches by idempotency key and finishes the turn — the idempotent `exec` contract
+> guarantees a command never runs twice, whatever the driver. Two honest caveats: the
+> container lives on **one Docker host**, so re-attach works within that host but not across
+> a multi-host worker fleet (that's what the **E2B** driver is for); and a plain container is
+> shared-kernel, so for untrusted workloads you'd run it under gVisor/Kata or use E2B's
+> microVMs. (There is also an in-process `subprocess` driver with no isolation — it is not a
+> production option; it exists only so the offline test suites, including the chaos warranty
+> above, run fast and daemon-free.)
 
 ### Using a real model
 
@@ -102,7 +107,37 @@ docker compose up -d --build worker
 ```
 Now the same curl commands drive a real Claude, writing and running its own shell commands.
 
-### Using a real sandbox
+### The default sandbox (`docker`)
+
+Out of the box, every session gets its own isolated container on the local Docker daemon —
+no cloud account, nothing to configure. `docker compose up` does it all: it builds the
+[base image](docker/sandbox.Dockerfile), mounts the daemon socket into the worker, and the
+worker runs `docker run` per session and executes commands inside via `docker exec`
+(docker-out-of-docker — the sandbox containers are siblings of the stack on your host).
+
+The base image is `debian:trixie-slim` (glibc + GNU coreutils, so agent-driven
+`pip`/`npm`/`apt install` stays on the happy path) with `git`, `curl`, `python3`, and `node`
+preinstalled and a non-root `agent` user. Swap it with `FUNKY_DOCKER_IMAGE`.
+
+> **Security note.** The default mounts `/var/run/docker.sock` into the worker, granting it
+> host-daemon access, and sandbox containers are shared-kernel. That's fine for local or
+> trusted use; for untrusted workloads use `FUNKY_SANDBOX=e2b` (remote microVMs) or run the
+> sandbox containers under a gVisor/Kata runtime.
+
+Running the worker **outside compose** (`pnpm -F worker dev`) uses your host's Docker
+directly; build the image once first:
+```bash
+docker build -f docker/sandbox.Dockerfile -t funky-sandbox:trixie docker/
+```
+
+The docker driver reuses the same [ComputeSDK](https://computesdk.com)-based idemKey
+protocol as E2B and answers to the **identical conformance suite** as every other driver;
+its cases run whenever a Docker daemon is reachable:
+```bash
+pnpm -F @funky/sandbox test        # runs the docker TCK against a live daemon (else skips)
+```
+
+### Using a remote sandbox (E2B)
 
 ```bash
 # in .env
@@ -116,8 +151,9 @@ Now every session provisions an isolated [E2B](https://e2b.dev) sandbox, through
 [ComputeSDK](https://computesdk.com) so further providers can slot in behind the same
 driver. The sandbox — not the worker — holds each command's output and exit code, which is
 what makes sessions survive worker death: a replacement worker re-attaches by idempotency
-key and reads the same files. Idle sandboxes pause after 30 minutes
-(`FUNKY_E2B_SANDBOX_TIMEOUT_MS`) and resume on the next command, filesystem intact.
+key and reads the same files. Unlike the docker driver this is reachable from **any** worker
+host, not just one. Idle sandboxes pause after 30 minutes (`FUNKY_E2B_SANDBOX_TIMEOUT_MS`)
+and resume on the next command, filesystem intact.
 
 The E2B driver answers to the identical conformance suite as the subprocess driver; it
 runs against real sandboxes when a key is present:

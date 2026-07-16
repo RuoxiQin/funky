@@ -32,7 +32,7 @@ const worker = startWorker({
   queue,
   store,
   llm: makeLlm(llmConfig(cfg)), // fake by default — no API key needed
-  sandbox: makeSandbox(sandboxConfig(cfg)), // subprocess by default — no account needed
+  sandbox: makeSandbox(sandboxConfig(cfg)), // docker by default — isolated, no account needed
   db,
   listenClient,
   concurrency: cfg.concurrency,
@@ -60,16 +60,20 @@ function llmConfig(c: Config): LlmConfig {
     : { driver: "fake", instance: new FakeLlm({ scripts: {} }) };
 }
 
-// subprocess runs commands inside THIS container (dev default, no isolation). e2b gives
-// every session an isolated remote sandbox that outlives any single worker.
+// docker (default) gives every session a real, isolated container from a base image on the
+// local daemon — no account. e2b gives every session an isolated remote sandbox that
+// outlives any single worker (and any single host).
 function sandboxConfig(c: Config): SandboxConfig {
-  return c.sandbox === "e2b"
-    ? {
+  switch (c.sandbox) {
+    case "e2b":
+      return {
         driver: "e2b",
         apiKey: c.e2bApiKey ?? "", // non-null per the config refine; "" can't slip through the driver's key check
         sandboxTimeoutMs: c.e2bSandboxTimeoutMs,
-      }
-    : { driver: "subprocess" };
+      };
+    default:
+      return { driver: "docker", image: c.dockerImage };
+  }
 }
 
 // Shutdown: drain, don't kill. Stop pulling, let in-flight turns finish, then release
