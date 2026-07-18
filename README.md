@@ -112,6 +112,9 @@ stateless worker replays the log and re-attaches to the still-running sandbox co
 nothing lost and nothing run twice. Run one agent or a multi-agent swarm on the same durable
 foundation.
 
+## Architecture Diagram
+<img src="architecture_diagram.svg" alt="Architecture diagram" width="700">
+
 ## Contributing
 
 This is an early-stage project. The best contribution right now is feedback on the interfaces. Open an issue to discuss the protocol, a missing method, or a backend you'd want to plug in.
